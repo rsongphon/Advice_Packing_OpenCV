@@ -16,6 +16,7 @@ def main():
     parentDir = os.getcwd()
     videoDir = os.path.join(parentDir,'Videos')
     currentMontVdo = os.path.join(videoDir,currentTime['monthName'])
+    logoDir = os.path.join(parentDir,'logo')
 
     if not os.path.exists(videoDir):
         os.makedirs(videoDir)
@@ -27,15 +28,22 @@ def main():
     startRecord = False
 
     while True:
-        #recordingVdo(filename = 'test1.avi')
-
+        # Record Video
         qrRead = {'staff':'11100215XF','order':'DSGA45D'}
+        recVid = recordingVdo(filename = 'test1.avi')
 
-        #editVideo(fileInput='rawfootage.avi',id=qrRead,time=currentTime)
+        # Cut Footage
+        vidData = getDurationFPS(fileInput=recVid)
+        vidCutName = cutVideo(fileInput=recVid,videoData=vidData,durTarget=180,mode='cut')
 
-        vidData = getDurationFPS(fileInput='rawfootage.avi')
+        # Edit, add text , logo
+        videEditName = editVideo(fileInput=vidCutName,id=qrRead,time=currentTime,logoDir=logoDir)
 
-        cutVideo(fileInput='rawfootage.avi',videoData=vidData,durTarget=180,mode='cut')
+        
+
+        
+
+        
 
         exit = input("Exit(y/n)")
         print(exit.upper())
@@ -78,15 +86,18 @@ def recordingVdo(filename='output.avi'):
     capture.release()
     output.release()
     cv2.destroyAllWindows()
+    return filename
 
-def editVideo(fileInput,id,time):
+def editVideo(fileInput,id,logoDir,time):
+
+    videoName = 'edit.avi'
     # Start Capture raw footage
     capture = cv2.VideoCapture(fileInput) 
     width = int(capture.get(3))
     height = int(capture.get(4))
     fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter 
     framerate = 17 # Same as original video
-    output = cv2.VideoWriter('edit.avi',fourcc,framerate, (width,height))
+    output = cv2.VideoWriter(videoName,fourcc,framerate, (width,height))
     
     #Reading one frame and move pointer to the next frame
     ret, frame = capture.read() # start reading
@@ -97,19 +108,23 @@ def editVideo(fileInput,id,time):
         font = cv2.FONT_HERSHEY_SIMPLEX
         textLocation_staff = (0,frame.shape[0]-10)  # adjust the minus value to move the row
         textLocation_order = (0,frame.shape[0]-50)  # adjust the minus value to move the row
-
         cv2.putText(img = frame,text='Staff ID: '+id['staff'],org=textLocation_staff, 
                     fontFace=font, fontScale=1, color=(255, 50, 255), thickness=1, lineType =cv2.LINE_AA)
-
         cv2.putText(img = frame,text='Order No: '+id['order'],org=textLocation_order,
                     fontFace=font, fontScale=1, color=(255, 50, 255), thickness= 1, lineType=cv2.LINE_AA)
+        
+        #Put logo in the image
+        logoAbsPath = os.path.join(logoDir,'advice.jpg') # Change logo here
+        logo = cv2.imread(logoAbsPath)
+        
+        frame = addLogo(frame,logo,logoScale=0.1)
 
         output.write(frame)
         ret, frame = capture.read() # next frame
 
-    
     capture.release()
     output.release()
+    return videoName
 
 def getDurationFPS(fileInput):
     capture = cv2.VideoCapture(fileInput)
@@ -172,8 +187,9 @@ def cutVideo(fileInput,videoData,durTarget,mode='cut'):
             
             capture.release()
             output.release()
+            return 'cut{}min.avi'.format(str(durTarget/60)) # change file name here
         else:
-            return
+            return fileInput # return the same videoname
 
     elif mode =='timeLapse':
         # !!adjust fps to speedup the video!!
@@ -196,9 +212,55 @@ def cutVideo(fileInput,videoData,durTarget,mode='cut'):
 
             capture.release()
             output.release()
+            return 'cut{}min.avi'.format(str(durTarget/60)) # change file name here
         
         else:
-            return
+            return fileInput # return the same videoname
+
+def addLogo(inputFrame,imgLogo,logoScale=0.1): 
+
+    def rescaleFrame(frame,scale=logoScale): 
+        # work for image , video , live camera
+        #The shape of an image is accessed by img.shape. It returns a tuple of the number of rows, columns, and channels (if the image is color):
+        width = int(frame.shape[1] * scale)  # shape[1] = width: must be int
+        height = int(frame.shape[0]* scale) # shape[0] = :height must be int
+
+        dimension = (width,height) # tuple to keep dimension
+
+        return cv2.resize(frame,dimension,interpolation=cv2.INTER_AREA)
+
+    oriFrame = inputFrame
+    logo = imgLogo
+
+    logoResize = rescaleFrame(logo,logoScale) # resize
+
+    height,width,channels = logoResize.shape # get access to the dimension of the logo
+
+    # Create ROI to put logo into
+    roi = oriFrame[0:height, 0:width]
+
+    # Now create a mask of logo and create its inverse mask also
+    logo2gray = cv2.cvtColor(logoResize, cv2.COLOR_BGR2GRAY)
+    ret, mask = cv2.threshold(logo2gray, 10, 255, cv2.THRESH_BINARY)
+    maskInv = cv2.bitwise_not(mask)
+
+    # black-out the area of logo in ROI
+    imgBg = cv2.bitwise_and(roi, roi, mask=maskInv)
+
+    # Take only region of logo from logo image.
+    logoFg = cv2.bitwise_and(logoResize, logoResize, mask=mask)
+
+    # add logo and background together
+    finalImg = cv2.add(imgBg,logoFg)
+
+    # Modify the original , Specify the location!
+    oriFrame[0:height,0:width] = finalImg
+
+    return oriFrame
+
+
+
+
 
 if __name__ == '__main__':
     main()
