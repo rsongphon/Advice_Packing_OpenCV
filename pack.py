@@ -3,6 +3,8 @@ import numpy as np
 import os
 import time
 import sys
+import shutil
+
 
 
 month = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
@@ -41,12 +43,34 @@ def main():
         # Cut Footage
         # Get FPS data duration of the video
         vidData = getDurationFPS(fileInput=originalFilename)
+
         # Cut the duration of video
+        print('Processing video....')
         vidCutName = cutVideo(fileInput=originalFilename,filename=filename,videoData=vidData,durTarget=180,mode='cut')
 
-        # Add text and logo timestamp of finish product
+        # Add text and logo timestamp of finish process
         vidEditName = editVideo(fileInput=vidCutName,filename=filename,id=qrRead,logoDir=logoDir,timeFinish=finishTime)
+        print('Video editing done!')
 
+        # Move final editing video file to valid folder and delete the original
+        # Current directory is the folder that run this script
+        finishFilePath = os.path.join(parentDir,vidEditName)
+        fileStorePath = os.path.join(currentMontVdo,vidEditName)
+        shutil.copy(finishFilePath,fileStorePath)
+
+        #delete original video
+        filePathOri = os.path.join(parentDir,originalFilename)
+        cutPathOri = os.path.join(parentDir,vidCutName)
+
+        print(f'Deleting...{originalFilename}')
+        os.unlink(filePathOri)
+        if vidCutName != originalFilename:
+            print(f'Deleting...{vidCutName}')
+            os.unlink(cutPathOri)
+        print(f'Deleting....{vidEditName}')
+        os.unlink(finishFilePath)
+
+        
         
 
         
@@ -153,12 +177,12 @@ def getDurationFPS(fileInput):
 
     videoData = {'fps':fps , 'frameCount' : frame_count , 'durationSec': duration}
 
-    print('fps = ' + str(fps))
-    print('number of frames = ' + str(frame_count))
-    print('duration (S) = ' + str(duration))
-    minutes = int(duration/60)
-    seconds = duration%60
-    print('duration (M:S) = ' + str(minutes) + ':' + str(seconds))
+    # print('fps = ' + str(fps))
+    # print('number of frames = ' + str(frame_count))
+    # print('duration (S) = ' + str(duration))
+    # minutes = int(duration/60)
+    # seconds = duration%60
+    # print('duration (M:S) = ' + str(minutes) + ':' + str(seconds))
 
     capture.release()
 
