@@ -32,19 +32,20 @@ def main():
         qrRead = {'staff':'11100215XF','order':'DSGA45D'}
 
         # Create valid filename: First 4 character of ordernumber follow by date:time
-        filename =  qrRead['order'][:5] + '_'+ str(currentTime['day']) + '_' + currentTime['monthName'] + '_' + str(currentTime['year']) +'.avi'
+        filename =  qrRead['order'][:5] + '_'+ str(currentTime['day']) + '_' + currentTime['monthName'] + '_' + str(currentTime['year'])
         
         # Return file name and finish time to use to label video filename
         recVid , finishTime = recordingVdo(filename = filename)
+        originalFilename = recVid + '_original.avi'
 
         # Cut Footage
         # Get FPS data duration of the video
-        vidData = getDurationFPS(fileInput=recVid)
+        vidData = getDurationFPS(fileInput=originalFilename)
         # Cut the duration of video
-        vidCutName = cutVideo(fileInput=recVid,videoData=vidData,durTarget=180,mode='cut')
+        vidCutName = cutVideo(fileInput=originalFilename,filename=filename,videoData=vidData,durTarget=180,mode='cut')
 
         # Add text and logo timestamp of finish product
-        vidEditName = editVideo(fileInput=vidCutName,id=qrRead,logoDir=logoDir,timeFinish=finishTime)
+        vidEditName = editVideo(fileInput=vidCutName,filename=filename,id=qrRead,logoDir=logoDir,timeFinish=finishTime)
 
         
 
@@ -70,7 +71,7 @@ def getCurrentTime():
     currentTime['min'] = t[4]
     return currentTime
 
-def recordingVdo(filename='output.avi'):
+def recordingVdo(filename):
     # Start Capture raw footage
     capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
     width = int(capture.get(3))
@@ -81,7 +82,7 @@ def recordingVdo(filename='output.avi'):
     
     
     # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
-    output = cv2.VideoWriter(filename,fourcc,framerate,(width,height))
+    output = cv2.VideoWriter(filename+'_original.avi',fourcc,framerate,(width,height))
     while True:
         isTrue, frame = capture.read()
         output.write(frame)
@@ -98,9 +99,9 @@ def recordingVdo(filename='output.avi'):
 
     return filename, finishTime
 
-def editVideo(fileInput,id,logoDir,timeFinish):
+def editVideo(fileInput,filename,id,logoDir,timeFinish):
 
-    videoName = 'edit.avi'
+    videoName = filename+'.avi'
     # Start Capture raw footage
     capture = cv2.VideoCapture(fileInput) 
     width = int(capture.get(3))
@@ -163,7 +164,7 @@ def getDurationFPS(fileInput):
 
     return videoData
 
-def cutVideo(fileInput,videoData,durTarget,mode='cut'):
+def cutVideo(fileInput,filename,videoData,durTarget,mode='cut'):
     # Choose Between 2 mode 
     # 'cut' for cuting the footage into last desire duration
     # 'timeLapse' for speed up the video in desire duration
@@ -190,7 +191,7 @@ def cutVideo(fileInput,videoData,durTarget,mode='cut'):
             height = int(capture.get(4))
             fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter 
             framerate = 17 # Same as original video
-            filename = f'{fileInput}_cut'  # change file name here
+            filename = f'{filename}_cut.avi'  # change file name here
             #output = cv2.VideoWriter('cut{}min.avi'.format(str(durTarget/60)),fourcc,framerate, (width,height))
             output = cv2.VideoWriter(filename,fourcc,framerate, (width,height))
 
@@ -224,7 +225,7 @@ def cutVideo(fileInput,videoData,durTarget,mode='cut'):
             width = int(capture.get(3))
             height = int(capture.get(4))
             fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter
-            filename = f'{fileInput}_timelapse'  # change file name here
+            filename = f'{filename}_timelapse.avi'  # change file name here
             #output = cv2.VideoWriter('cut{}min.avi'.format(str(durTarget/60)),fourcc,fpsExpect, (width,height))
             output = cv2.VideoWriter(filename,fourcc,fpsExpect, (width,height))
 
