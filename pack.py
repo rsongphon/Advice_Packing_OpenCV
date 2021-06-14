@@ -4,6 +4,8 @@ import os
 import time
 import sys
 import shutil
+import base64
+import json
 
 
 
@@ -87,7 +89,7 @@ def main():
         # Move final editing video file to valid folder and delete the original
         # Current directory is the folder that run this script
         finishFilePath = os.path.join(parentDir,vidEditName)
-        fileStorePath = os.path.join(currentMontVdo,vidEditName)
+        fileStorePath = os.path.join(currentMontVdo,vidEditName) # !! This is the location of the final video output
         shutil.copy(finishFilePath,fileStorePath)
 
         #delete original video
@@ -101,6 +103,32 @@ def main():
             os.unlink(cutPathOri)
         print(f'Deleting....{vidEditName}')
         os.unlink(finishFilePath)
+
+        # Create information for video
+        data = {}
+        # Open recent video record to read and encode to BASE64
+        with open(fileStorePath, mode='rb') as file:
+            videoData = file.read()
+        # Store video data
+        data['videoData'] = base64.encodebytes(videoData).decode('utf-8')
+
+        # Strore other information
+        data['videoName'] , data['fileType'] = os.path.splitext(vidEditName) # Extract file name and type
+        data['fileSize'] = os.path.getsize(fileStorePath)
+        data['dateCreate'] = time.ctime(os.path.getctime(fileStorePath))
+        data['staffID'] = qrRead['staff']
+        data['orderNo'] = qrRead['order']
+        
+        # Pack data into JSON Object
+        jsonData = json.dumps(data)
+
+        with open('json.txt', 'w') as f:
+            f.write(jsonData)
+
+        
+
+        
+
 
         
         
