@@ -11,6 +11,7 @@ month = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep'
 
 def main():
     currentTime = getCurrentTime()
+    epochTime = time.time()
 
     # Check for folder in the system
     # Folder Structure Video/(Month)
@@ -25,7 +26,38 @@ def main():
     if not os.path.exists(currentMontVdo):
         os.makedirs(currentMontVdo)
     
-    # Check the folder of video that last more than 1 month
+    # Check the folder of video that last more than 1 month 
+    for folderName, subfolders, filenames in os.walk(videoDir):
+        #print('The current folder is ' + folderName)
+        #print("Created: %s" % time.ctime(os.path.getctime(folderName)))
+
+        # for subfolder in subfolders:
+            # print('SUBFOLDER OF ' + folderName + ': ' + subfolder)
+
+        for filename in filenames:
+            print('FILE INSIDE ' + folderName + ': '+ filename)
+            absPath = os.path.join(folderName,filename)
+            # modTime = time.ctime(os.path.getmtime(absPath))
+            # creTime = time.ctime(os.path.getctime(absPath))
+            #modTime = os.path.getmtime(absPath)
+            creTime = os.path.getctime(absPath)
+            #print("Last modified: {}".format(modTime))
+            diffTime = epochTime - creTime
+            #print("Created: {}".format(creTime))
+            #print('Current time: {}'.format(epochTime))
+            print('File was create {} min ago'.format(int(diffTime/60)))
+
+        # time in second
+            OneMonth = 2628000
+            #twoMonth = 5256000
+            #threeMonth = 7884000
+
+        # Remove the file that last more than desire time
+    
+            if diffTime > OneMonth: # time in second 
+                os.unlink(absPath)
+
+
     # recording status
     startRecord = False
 
@@ -287,7 +319,7 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
     # Create ROI to put logo into
     roi = oriFrame[0:height, 0:width]
 
-    # Now create a mask of logo and create its inverse mask also
+    # Create a mask of logo and create its inverse mask also
     logo2gray = cv2.cvtColor(logoResize, cv2.COLOR_BGR2GRAY)
     ret, mask = cv2.threshold(logo2gray, 10, 255, cv2.THRESH_BINARY)
     maskInv = cv2.bitwise_not(mask)
