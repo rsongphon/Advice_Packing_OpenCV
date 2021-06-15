@@ -362,24 +362,28 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
 
     return oriFrame
 
-def QRscan():
+def QRscan(staffStatus=False,orderStatus = False):
     capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
 
     # Regrex to identify  staff number and ordernumber
     # Staff ID format: Ex 1110
     staffPattern = '1110'
-    staffStatus = False
+    
     # Order number format : ex DSG
     orderPattern = 'DSG'
 
+    delay = 0
+    
+
     while True:
+        ret,frame = capture.read()
+        font = cv2.FONT_HERSHEY_SIMPLEX
         if not staffStatus:
-            ret,frame = capture.read()
-            font = cv2.FONT_HERSHEY_SIMPLEX
             cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
             for code in decode(frame):
                 qrCode = code.data.decode('utf-8')
                 if qrCode[:4] == staffPattern:
+                    cv2.putText(frame,'Found',(400,30),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
                     # get the point of the polygon
                     points = np.array([code.polygon],np.int32)
                     points = points.reshape((-1,1,2))
@@ -398,29 +402,84 @@ def QRscan():
                     rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
                     cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(255,0,255),thickness=2)
                     cv2.putText(frame,'Staff ID',rectButtom,fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
-                else:
-                    # get the point of the polygon
+                    staffStatus = True
+
+        if staffStatus and not orderStatus:
+            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            cv2.putText(frame,'Found',(400,30),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+
+            cv2.putText(frame,'Please Order number',(0,60),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            for code in decode(frame):
+                qrCode = code.data.decode('utf-8')
+                # still showing Staff ID
+                if qrCode[:4] == staffPattern:
+                    cv2.putText(frame,'Found',(400,30),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
                     points = np.array([code.polygon],np.int32)
                     points = points.reshape((-1,1,2))
-                    # polyline is 3 dimension array 
-                    # 1 dimension represent each group of polygon (no line cross between group)
-                    # 2 dimension represent each point of the polygon in group
-                    # 3 dimension represent location of the point (pixel row,column)
-                    # [points] = Array of polygonal curves. There may be multiple QR detect
-                    cv2.polylines(frame,[points],True,(0,0,255),5) 
-                    # get the rectangle data (left , top , width , height)
+                    cv2.polylines(frame,[points],True,(0,255,0),5) 
                     rect = code.rect
-                    # origin point(top-left) of the rectangle
                     rectOrigin = (rect[0],rect[1])
-                    # Adjust text to middle buttom point of the  rectangle
-                    # bottom point(bottom-left) of the rectangle : origin + height
+
                     rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
-                    cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
-                    cv2.putText(frame,'Invalid',rectButtom,fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
-            
-            cv2.imshow('frame',frame)
-            cv2.waitKey(1)
-        #return qrCode  
+                    cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(255,0,255),thickness=2)
+                    cv2.putText(frame,'Staff ID',rectButtom,fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+                # Detecting  for order number
+                if qrCode[:3] == orderPattern:
+                    cv2.putText(frame,'Found',(400,60),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+                    points = np.array([code.polygon],np.int32)
+                    points = points.reshape((-1,1,2))
+                    cv2.polylines(frame,[points],True,(0,255,0),5) 
+                    rect = code.rect
+                    rectOrigin = (rect[0],rect[1])
+                    rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
+                    cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(255,0,255),thickness=2)
+                    cv2.putText(frame,'Order number',rectButtom,fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+                    orderStatus = True
+                # else:
+                #     # get the point of the polygon
+                #     points = np.array([code.polygon],np.int32)
+                #     points = points.reshape((-1,1,2))
+                #     # polyline is 3 dimension array 
+                #     # 1 dimension represent each group of polygon (no line cross between group)
+                #     # 2 dimension represent each point of the polygon in group
+                #     # 3 dimension represent location of the point (pixel row,column)
+                #     # [points] = Array of polygonal curves. There may be multiple QR detect
+                #     cv2.polylines(frame,[points],True,(0,0,255),5) 
+                #     # get the rectangle data (left , top , width , height)
+                #     rect = code.rect
+                #     # origin point(top-left) of the rectangle
+                #     rectOrigin = (rect[0],rect[1])
+                #     # Adjust text to middle buttom point of the  rectangle
+                #     # bottom point(bottom-left) of the rectangle : origin + height
+                #     rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
+                #     cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+                #     cv2.putText(frame,'Invalid',rectButtom,fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+
+        
+        if staffStatus and orderStatus:
+            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            cv2.putText(frame,'Found',(400,30),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+
+            cv2.putText(frame,'Please Order number',(0,60),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            cv2.putText(frame,'Found',(400,60),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+
+            cv2.putText(frame,'Start Recording....',(0,90),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+
+            delay += 1
+            if delay < 50:
+                cv2.imshow('frame',frame)
+                cv2.waitKey(1)
+                continue
+            else:
+                cv2.imshow('frame',frame)
+                cv2.waitKey(1)
+                capture.release()
+                cv2.destroyAllWindows()
+                return
+
+        cv2.imshow('frame',frame)
+        cv2.waitKey(1)
+
     
 
 
