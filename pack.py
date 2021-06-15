@@ -65,10 +65,7 @@ def main():
 
     QRscan()
 
-    if (staffID == True) and (orderNum == True):
-        startRecord = True
-
-    while startRecord:
+    while True:
 
         print('Please enter staff number to procedess')
         # Information of order number and staff ID from qr code
@@ -383,9 +380,9 @@ def QRscan(staffStatus=False,orderStatus=False):
             cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
             try:
                 staffStatus , staffID = decodeStaffID(frame,staffPattern) # if found ID return True status
-                print(staffID)
-            except TypeError:
-                print('Not detect staff ID yet')
+                #print(staffID)
+            except TypeError: # if function return None (no QR code found) must handle TypeError
+                #print('Not detect staff ID yet')
                 pass
 
         # Then ask for order number or start another packing process for the same staff
@@ -394,14 +391,15 @@ def QRscan(staffStatus=False,orderStatus=False):
             cv2.putText(frame,'Found',(400,30),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
 
             cv2.putText(frame,'Please Order number',(0,60),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
-            # Still showing staff ID
+            
+            # Still showing QR code detect but not care for output
             decodeStaffID(frame,staffPattern)
 
             try:
                 orderStatus , orderID = decodeOrderID(frame,orderPattern)
-                print(orderID)
-            except TypeError:
-                print('Not detect order number yet')
+                #print(orderID)
+            except TypeError: # if function return None (no QR code found) must handle TypeError
+                #print('Not detect order number yet')
                 pass
     
                 # else:
@@ -434,10 +432,11 @@ def QRscan(staffStatus=False,orderStatus=False):
 
             cv2.putText(frame,'Start Recording....',(0,90),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
 
+            # Still showing QR code detect but not care for output
             decodeStaffID(frame,staffPattern)
-
             decodeOrderID(frame,orderPattern)
 
+            # still showing display for a moment befor exiting function
             delay += 1
             if delay < 50:
                 cv2.imshow('frame',frame)
@@ -448,7 +447,7 @@ def QRscan(staffStatus=False,orderStatus=False):
                 cv2.waitKey(1)
                 capture.release()
                 cv2.destroyAllWindows()
-                return
+                return staffID , orderID
 
         cv2.imshow('frame',frame)
         cv2.waitKey(1)
@@ -505,6 +504,6 @@ def decodeOrderID(frame,orderPattern):
 
 
 if __name__ == '__main__':
-    #main()
-    QRscan()
+    main()
+    
     
