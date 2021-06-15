@@ -381,7 +381,12 @@ def QRscan(staffStatus=False,orderStatus=False):
         # Ask for staff ID first
         if not staffStatus:
             cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
-            staffStatus = decodeStaffID(frame,staffPattern) # if found ID return True status
+            try:
+                staffStatus , staffID = decodeStaffID(frame,staffPattern) # if found ID return True status
+                print(staffID)
+            except TypeError:
+                print('Not detect staff ID yet')
+                pass
 
         # Then ask for order number or start another packing process for the same staff
         if staffStatus and not orderStatus:
@@ -390,9 +395,14 @@ def QRscan(staffStatus=False,orderStatus=False):
 
             cv2.putText(frame,'Please Order number',(0,60),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
             # Still showing staff ID
-            _  = decodeStaffID(frame,staffPattern)
+            decodeStaffID(frame,staffPattern)
 
-            orderStatus = decodeOrderID(frame,orderPattern)
+            try:
+                orderStatus , orderID = decodeOrderID(frame,orderPattern)
+                print(orderID)
+            except TypeError:
+                print('Not detect order number yet')
+                pass
     
                 # else:
                 #     # get the point of the polygon
@@ -424,9 +434,9 @@ def QRscan(staffStatus=False,orderStatus=False):
 
             cv2.putText(frame,'Start Recording....',(0,90),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
 
-            _   = decodeStaffID(frame,staffPattern)
+            decodeStaffID(frame,staffPattern)
 
-            _ = decodeOrderID(frame,orderPattern)
+            decodeOrderID(frame,orderPattern)
 
             delay += 1
             if delay < 50:
@@ -468,8 +478,7 @@ def decodeStaffID(frame,staffPattern):
             rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
             cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(255,0,255),thickness=2)
             cv2.putText(frame,'Staff ID',rectButtom,fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
-            print(qrCode)
-            return True 
+            return True , qrCode
         else:
             continue
             #return  False , qrCode
@@ -490,7 +499,7 @@ def decodeOrderID(frame,orderPattern):
             rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
             cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(255,0,255),thickness=2)
             cv2.putText(frame,'Order number',rectButtom,fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
-            return True 
+            return True , qrCode
         else:
             continue  
 
