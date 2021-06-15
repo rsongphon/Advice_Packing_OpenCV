@@ -6,6 +6,7 @@ import sys
 import shutil
 import base64
 import json
+from pyzbar.pyzbar import decode
 
 
 
@@ -59,11 +60,17 @@ def main():
             if diffTime > OneMonth: # time in second 
                 os.unlink(absPath)
 
-
     # recording status
     startRecord = False
 
-    while True:
+    QRscan()
+
+    if (staffID == True) and (orderNum == True):
+        startRecord = True
+
+    while startRecord:
+
+        print('Please enter staff number to procedess')
         # Information of order number and staff ID from qr code
         qrRead = {'staff':'11100215XF','order':'DSGA45D'}
 
@@ -122,20 +129,9 @@ def main():
         # Pack data into JSON Object
         jsonData = json.dumps(data)
 
-        with open('json.txt', 'w') as f:
-            f.write(jsonData)
+        # with open('json.txt', 'w') as f:
+        #     f.write(jsonData)
 
-        
-
-        
-
-
-        
-        
-
-        
-
-        
 
         exit = input("Exit(y/n)")
         print(exit.upper())
@@ -366,9 +362,72 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
 
     return oriFrame
 
+def QRscan():
+    capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
+
+    # Regrex to identify  staff number and ordernumber
+    # Staff ID format: Ex 1110
+    staffPattern = '1110'
+    staffStatus = False
+    # Order number format : ex DSG
+    orderPattern = 'DSG'
+
+    while True:
+        if not staffStatus:
+            ret,frame = capture.read()
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            for code in decode(frame):
+                qrCode = code.data.decode('utf-8')
+                if qrCode[:4] == staffPattern:
+                    # get the point of the polygon
+                    points = np.array([code.polygon],np.int32)
+                    points = points.reshape((-1,1,2))
+                    # polyline is 3 dimension array 
+                    # 1 dimension represent each group of polygon (no line cross between group)
+                    # 2 dimension represent each point of the polygon in group
+                    # 3 dimension represent location of the point (pixel row,column)
+                    # [points] = Array of polygonal curves. There may be multiple QR detect
+                    cv2.polylines(frame,[points],True,(0,255,0),5) 
+                    # get the rectangle data (left , top , width , height)
+                    rect = code.rect
+                    # origin point(top-left) of the rectangle
+                    rectOrigin = (rect[0],rect[1])
+                    # Adjust text to middle buttom point of the  rectangle
+                    # bottom point(bottom-left) of the rectangle : origin + height
+                    rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
+                    cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(255,0,255),thickness=2)
+                    cv2.putText(frame,'Staff ID',rectButtom,fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+                else:
+                    # get the point of the polygon
+                    points = np.array([code.polygon],np.int32)
+                    points = points.reshape((-1,1,2))
+                    # polyline is 3 dimension array 
+                    # 1 dimension represent each group of polygon (no line cross between group)
+                    # 2 dimension represent each point of the polygon in group
+                    # 3 dimension represent location of the point (pixel row,column)
+                    # [points] = Array of polygonal curves. There may be multiple QR detect
+                    cv2.polylines(frame,[points],True,(0,0,255),5) 
+                    # get the rectangle data (left , top , width , height)
+                    rect = code.rect
+                    # origin point(top-left) of the rectangle
+                    rectOrigin = (rect[0],rect[1])
+                    # Adjust text to middle buttom point of the  rectangle
+                    # bottom point(bottom-left) of the rectangle : origin + height
+                    rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
+                    cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+                    cv2.putText(frame,'Invalid',rectButtom,fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+            
+            cv2.imshow('frame',frame)
+            cv2.waitKey(1)
+        #return qrCode  
+    
+
 
 
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    QRscan()
+    

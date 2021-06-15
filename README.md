@@ -61,7 +61,10 @@ To make a system to record warehouse packing procedure by using Raspberry Pi and
 
 9. **Backup video for some time and delete to keep the storage**
   - Crate a condition about the duration to keep file
-  - Walk through storage g
+  - Walk through storage directory and check if the file last longer than the time we accept then delete 
+    these file
+  - Comepare time can be done by find the gap between the file creation time and recent time
+  - The process may run once after we start the hardware befoe execute the process or other condition
 
 10. **Have display to show status of the system**
   - Show the display following list
