@@ -10,7 +10,8 @@ from pyzbar.pyzbar import decode
 
 
 
-month = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
+MONTH = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
+FRAMERATE = 17
 
 def main():
     currentTime = getCurrentTime()
@@ -145,7 +146,7 @@ def getCurrentTime():
     t = list(time.localtime())
     currentTime['year'] = t[0]
     currentTime['month'] = t[1]
-    currentTime['monthName'] = month[t[1]]
+    currentTime['monthName'] = MONTH[t[1]]
     currentTime['day'] = t[2]
     currentTime['hour'] = t[3]
     currentTime['min'] = t[4]
@@ -157,23 +158,36 @@ def recordingVdo(filename,orderNo):
     width = int(capture.get(3))
     height = int(capture.get(4))
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    framerate = 17 # Framerate must be matach with the camera. See specification !!
-
+    #FRAMERATE = 17 # FRAMERATE must be matach with the camera. See specification !!
+    finish = False
+    font = cv2.FONT_HERSHEY_SIMPLEX 
     
     
     # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
-    output = cv2.VideoWriter(filename+'_original.avi',fourcc,framerate,(width,height))
-    while True:
+    output = cv2.VideoWriter(filename+'_original.avi',fourcc,FRAMERATE,(width,height))
+    while not finish:
         isTrue, oriframe = capture.read()
         output.write(oriframe)
-        frameLable , exitStatus = scanToExit(oriframe,orderNo)
+        frameLable , finish = scanToExit(oriframe,orderNo)
         cv2.imshow('frame',frameLable)
         cv2.waitKey(1)
-        # read QR code or push button to break
-        if  exitStatus == True:
-            break
+
     
     finishTime = getCurrentTime()
+
+    # display finish status for 5 second
+    displayFrame = FRAMERATE * 5
+    
+
+    for frame in range(displayFrame):
+        isTrue, display = capture.read()
+        display , _ = scanToExit(display,orderNo) # still display order no.
+        cv2.putText(display,'Finished!',(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+        cv2.putText(display,'Stop recording'+'.'*int(frame/FRAMERATE),(0,80),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+        cv2.imshow('frame',display)
+        cv2.waitKey(1)
+
+
     capture.release()
     output.release()
     cv2.destroyAllWindows()
@@ -188,8 +202,8 @@ def editVideo(fileInput,filename,id,logoDir,timeFinish):
     width = int(capture.get(3))
     height = int(capture.get(4))
     fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter 
-    framerate = 17 # Same as original video
-    output = cv2.VideoWriter(videoName,fourcc,framerate, (width,height))
+    #FRAMERATE = 17 # Same as original video
+    output = cv2.VideoWriter(videoName,fourcc,FRAMERATE, (width,height))
     
     #Reading one frame and move pointer to the next frame
     ret, frame = capture.read() # start reading
@@ -257,8 +271,8 @@ def cutVideo(fileInput,filename,videoData,durTarget,mode='cut'):
 
         # cut the last footage to the value we want
         # duration = frame_count/fps >>>> frame_count = fps*duration
-        fps = 17 # <<<<<!!!! adjust this value depend on the camera
-        numFrameExpect = fps * durTarget
+        #fps = 17 # <<<<<!!!! adjust this value depend on the camera
+        numFrameExpect = FRAMERATE * durTarget
 
         if videoData['durationSec'] > durTarget:
             print('Video lenght is {} minute . More than {} minute'.format(str(int(videoData['durationSec']/60)),str(int(durTarget/60))))
@@ -271,10 +285,10 @@ def cutVideo(fileInput,filename,videoData,durTarget,mode='cut'):
             width = int(capture.get(3))
             height = int(capture.get(4))
             fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter 
-            framerate = 17 # Same as original video
+            #FRAMERATE = 17 # Same as original video
             filename = f'{filename}_cut.avi'  # change file name here
-            #output = cv2.VideoWriter('cut{}min.avi'.format(str(durTarget/60)),fourcc,framerate, (width,height))
-            output = cv2.VideoWriter(filename,fourcc,framerate, (width,height))
+            #output = cv2.VideoWriter('cut{}min.avi'.format(str(durTarget/60)),fourcc,FRAMERATE, (width,height))
+            output = cv2.VideoWriter(filename,fourcc,FRAMERATE, (width,height))
 
             ret, frame = capture.read() # start reading
             countFrame = 1 # first frame
@@ -374,6 +388,7 @@ def QRscan(staffStatus=False,orderStatus=False):
     orderPattern = 'DSG'
 
     delay = 0
+    #FRAMERATE = 17
 
     while True:
         ret,frame = capture.read()
@@ -453,6 +468,10 @@ def QRscan(staffStatus=False,orderStatus=False):
                 cv2.destroyAllWindows()
                 return True , staffID , orderID 
 
+           
+
+
+
         cv2.imshow('frame',frame)
         cv2.waitKey(1)
 
@@ -515,7 +534,7 @@ def scanToExit(frame,orderNo):
     cv2.putText(frame,text,(0,frame.shape[0]-10),fontFace=font,fontScale=0.5,color=(255,0,255),thickness=1)
     for code in decode(frame):
         qrCode = code.data.decode('utf-8')
-        print(qrCode)
+        #print(qrCode)
         # Detecting  for order number
         if qrCode == orderNo:
             points = np.array([code.polygon],np.int32)
