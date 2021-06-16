@@ -61,15 +61,18 @@ def main():
                 os.unlink(absPath)
 
     # recording status
-    startRecord = False
+    Record = False
 
-    QRscan()
+    Record , staffID , orderNo = QRscan()
 
-    while True:
 
-        print('Please enter staff number to procedess')
+    while Record:
+
+        print(f'Staff ID : {staffID}')
+        print(f'order No {orderNo}')
+
         # Information of order number and staff ID from qr code
-        qrRead = {'staff':'11100215XF','order':'DSGA45D'}
+        qrRead = {'staff': staffID ,'order': orderNo }
 
         # Create valid filename: First 4 character of ordernumber follow by date:time
         filename =  qrRead['order'][:5] + '_'+ str(currentTime['day']) + '_' + currentTime['monthName'] + '_' + str(currentTime['year'])
@@ -447,18 +450,19 @@ def QRscan(staffStatus=False,orderStatus=False):
                 cv2.waitKey(1)
                 capture.release()
                 cv2.destroyAllWindows()
-                return staffID , orderID
+                return True , staffID , orderID 
 
         cv2.imshow('frame',frame)
         cv2.waitKey(1)
 
     
 def decodeStaffID(frame,staffPattern):
+    # Scan for staff ID number then border the rectangle and put text on the screen 
     font = cv2.FONT_HERSHEY_SIMPLEX
     for code in decode(frame):
         qrCode = code.data.decode('utf-8')
         if qrCode[:4] == staffPattern:
-            cv2.putText(frame,'Found',(400,30),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+            #cv2.putText(frame,'Found',(400,30),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
             # get the point of the polygon
             points = np.array([code.polygon],np.int32)
             points = points.reshape((-1,1,2))
@@ -480,16 +484,16 @@ def decodeStaffID(frame,staffPattern):
             return True , qrCode
         else:
             continue
-            #return  False , qrCode
 
 
 def decodeOrderID(frame,orderPattern):
+    # Scan for order number then border the rectangle and put text on the screen 
     font = cv2.FONT_HERSHEY_SIMPLEX
     for code in decode(frame):
         qrCode = code.data.decode('utf-8')
         # Detecting  for order number
         if qrCode[:3] == orderPattern:
-            cv2.putText(frame,'Found',(400,60),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+            #cv2.putText(frame,'Found',(400,60),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
             points = np.array([code.polygon],np.int32)
             points = points.reshape((-1,1,2))
             cv2.polylines(frame,[points],True,(0,255,0),5) 
@@ -505,5 +509,6 @@ def decodeOrderID(frame,orderPattern):
 
 if __name__ == '__main__':
     main()
+    
     
     
