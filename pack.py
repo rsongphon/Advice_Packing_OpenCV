@@ -180,6 +180,10 @@ def recordingVdo(filename,orderNo):
     #FRAMERATE = 17 # FRAMERATE must be matach with the camera. See specification !!
     finish = False
     font = cv2.FONT_HERSHEY_SIMPLEX 
+
+    count = 0 # for flickering text
+    showText = True
+    numFrame = 10 # number of frame for flickering text
     
     
     # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
@@ -187,8 +191,22 @@ def recordingVdo(filename,orderNo):
     while not finish:
         isTrue, oriframe = capture.read()
         output.write(oriframe)
-        frameLable , finish = scanToExit(oriframe,orderNo)
-        cv2.imshow('frame',frameLable)
+        editFrame , finish = scanToExit(oriframe,orderNo)
+
+        if showText == True:
+            editFrame = cv2.putText(editFrame,'Recording',(int(editFrame.shape[1]*0.75),50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+            count += 1
+        elif showText == False:
+            count += 1
+        if (count > numFrame) and (showText == True):
+            showText = False
+            count = 0
+        if (count > numFrame) and (showText == False):
+            showText = True
+            count = 0
+
+
+        cv2.imshow('frame',editFrame)
         cv2.waitKey(1)
 
     
@@ -626,6 +644,7 @@ def recordAgain(QRinput):
                     decodeOrderID(display ,orderPattern)
                     cv2.putText(display,'Next order Found!',(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
                     cv2.putText(display,'Order no: '+ QRinput['order'],(0,100),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+                    # Flickering text
                     if showText == True:
                         cv2.putText(display,'Restrating',(0,display.shape[0]-30),fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
                         count += 1
@@ -654,8 +673,9 @@ def recordAgain(QRinput):
                 for frame in range(displayFrame):
                     isTrue, display = capture.read()
                     decodeStaffID(display,staffPattern)
-                    cv2.putText(display,'Detect Staff ID' + staffID,(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+                    cv2.putText(display,'Detect Staff ID ' + staffID,(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
                     cv2.putText(display,'Finished Job ',(0,100),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+                    # Flickering text
                     if showText == True:
                         cv2.putText(display,'Logging off',(0,display.shape[0]-30),fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
                         count += 1
