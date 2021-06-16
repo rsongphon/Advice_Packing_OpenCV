@@ -13,6 +13,7 @@ from pyzbar.pyzbar import decode
 MONTH = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
 FRAMERATE = 17
 
+
 def main():
     currentTime = getCurrentTime()
     epochTime = time.time()
@@ -66,18 +67,20 @@ def main():
 
     Record , staffID , orderNo = QRscan()
 
+    # Information of order number and staff ID from qr code
+    qrRead = {'staff': staffID ,'order': orderNo }
+
 
     while Record:
-
-        # Information of order number and staff ID from qr code
-        qrRead = {'staff': staffID ,'order': orderNo }
 
         print(qrRead['staff'])
         print(qrRead['order'])
 
         # Create valid filename: First 4 character of ordernumber follow by date:time
         filename =  qrRead['order'][:5] + '_'+ str(currentTime['day']) + '_' + currentTime['monthName'] + '_' + str(currentTime['year'])
-        
+
+        ######## Start Recording Video ##########
+
         # Return file name and finish time to use to label video filename
         recVid , finishTime = recordingVdo(filename = filename,orderNo=qrRead['order'])
         originalFilename = recVid + '_original.avi'
@@ -93,6 +96,12 @@ def main():
         # Add text and logo timestamp of finish process
         vidEditName = editVideo(fileInput=vidCutName,filename=filename,id=qrRead,logoDir=logoDir,timeFinish=finishTime)
         print('Video editing done!')
+
+        ######## Video recording success (and editing too) ##########
+
+        Record = False
+
+        ######## Move file to valid folder and delete original file ##########
 
         # Move final editing video file to valid folder and delete the original
         # Current directory is the folder that run this script
@@ -111,6 +120,10 @@ def main():
             os.unlink(cutPathOri)
         print(f'Deleting....{vidEditName}')
         os.unlink(finishFilePath)
+
+        ######## Finish moving and deleting file ##########
+
+        ######## Create video data and send to storage server ##########
 
         # Create information for video
         data = {}
@@ -133,11 +146,16 @@ def main():
         # with open('json.txt', 'w') as f:
         #     f.write(jsonData)
 
+        ######## Create video data and send to storage server ##########
 
-        exit = input("Exit(y/n)")
-        print(exit.upper())
-        if exit.upper() == 'Y':
-            break
+
+        ######## Ask thse same staff if they want to packing more ##########
+
+        Record , qrRead = recordAgain(QRinput = qrRead)
+        # exit = input("Exit(y/n)")
+        # print(exit.upper())
+        # if exit.upper() == 'Y':
+        #     break
     
     sys.exit()
 
@@ -173,9 +191,9 @@ def recordingVdo(filename,orderNo):
         cv2.waitKey(1)
 
     
-    finishTime = getCurrentTime()
+    finishTime = getCurrentTime() # get finish time to label to video
 
-    # display finish status for 5 second
+    # display finish status for 5 second then exit
     displayFrame = FRAMERATE * 5
     
 
@@ -470,14 +488,6 @@ def QRscan(staffStatus=False,orderStatus=False):
                 cv2.destroyAllWindows()
                 return True , staffID , orderID
 
-            
-
-            
-
-           
-
-
-
         cv2.imshow('frame',frame)
         cv2.waitKey(1)
 
@@ -553,6 +563,7 @@ def scanToExit(frame,orderNo):
             cv2.putText(frame,'Order number',rectButtom,fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
             return frame , True
         else:
+            #detect invalid number (not order number)
             points = np.array([code.polygon],np.int32)
             points = points.reshape((-1,1,2))
             cv2.polylines(frame,[points],True,(0,0,255),5) 
@@ -565,6 +576,69 @@ def scanToExit(frame,orderNo):
 
     return frame , False
 
+def recordAgain(QRinput):
+    # Information of order number and staff ID from qr code
+    # QRinput is dictionary {'staff': staffID ,'order': orderNo }
+
+    font = cv2.FONT_HERSHEY_SIMPLEX 
+    capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
+    # regrex pattern to detect staff and order number
+
+    # Regrex to identify  staff number and ordernumber
+    # Staff ID format: Ex 1110
+    staffPattern = '1110'
+    
+    # Order number format : ex DSG
+    orderPattern = 'DSG'
+    
+    count = 0 # for flickering text
+    showText = True
+    numFrame = 10 # number of frame for flickering text
+
+    while True:
+        ret,frame = capture.read()
+        frame = cv2.putText(frame,'Staff ID :' + QRinput['staff'] ,(0,50),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+        if showText == True:
+            frame = cv2.putText(frame,'Waiting for next QR order',(0,100),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            count += 1
+        elif showText == False:
+            count += 1
+        if (count > numFrame) and (showText == True):
+            showText = False
+            count = 0
+        if (count > numFrame) and (showText == False):
+            showText = True
+            count = 0
+
+        frame = cv2.putText(frame,'Scan Staff ID to log off' ,(0,frame.shape[0]-20),fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+
+        # scan new order number to begin record next package
+        try:
+            detectOrder , orderNum = decodeOrderID(frame ,orderPattern) 
+            if detectOrder:
+                QRinput['order'] = orderNum
+                cv2.imshow('frame',frame)
+                cv2.waitKey(1)
+                capture.release()
+                cv2.destroyAllWindows()
+                return True , QRinput
+        except TypeError:
+            pass
+
+        # scan same staff ID to log off
+        try: 
+            logOff , _ = decodeStaffID(frame,staffPattern)
+            if logOff:
+                cv2.imshow('frame',frame)
+                cv2.waitKey(1)
+                capture.release()
+                cv2.destroyAllWindows()
+                return False , QRinput
+        except TypeError:
+            pass
+
+        cv2.imshow('Frame',frame)
+        cv2.waitKey(1)
 
 
 
