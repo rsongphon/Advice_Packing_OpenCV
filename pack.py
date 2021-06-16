@@ -68,17 +68,17 @@ def main():
 
     while Record:
 
-        print(f'Staff ID : {staffID}')
-        print(f'order No {orderNo}')
-
         # Information of order number and staff ID from qr code
         qrRead = {'staff': staffID ,'order': orderNo }
+
+        print(qrRead['staff'])
+        print(qrRead['order'])
 
         # Create valid filename: First 4 character of ordernumber follow by date:time
         filename =  qrRead['order'][:5] + '_'+ str(currentTime['day']) + '_' + currentTime['monthName'] + '_' + str(currentTime['year'])
         
         # Return file name and finish time to use to label video filename
-        recVid , finishTime = recordingVdo(filename = filename)
+        recVid , finishTime = recordingVdo(filename = filename,orderNo=qrRead['order'])
         originalFilename = recVid + '_original.avi'
 
         # Cut Footage
@@ -151,7 +151,7 @@ def getCurrentTime():
     currentTime['min'] = t[4]
     return currentTime
 
-def recordingVdo(filename):
+def recordingVdo(filename,orderNo):
     # Start Capture raw footage
     capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
     width = int(capture.get(3))
@@ -164,12 +164,13 @@ def recordingVdo(filename):
     # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
     output = cv2.VideoWriter(filename+'_original.avi',fourcc,framerate,(width,height))
     while True:
-        isTrue, frame = capture.read()
-        output.write(frame)
-        cv2.imshow('frame',frame)
-
+        isTrue, oriframe = capture.read()
+        output.write(oriframe)
+        frameLable , exitStatus = scanToExit(oriframe,orderNo)
+        cv2.imshow('frame',frameLable)
+        cv2.waitKey(1)
         # read QR code or push button to break
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if  exitStatus == True:
             break
     
     finishTime = getCurrentTime()
@@ -505,6 +506,41 @@ def decodeOrderID(frame,orderPattern):
             return True , qrCode
         else:
             continue  
+
+def scanToExit(frame,orderNo):
+    # In record function call this to implement scaning order number to end the recording process
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    text = 'Scan order QRcode again to stop recording after finish packing'
+    cv2.putText(frame,text,(0,frame.shape[0]-10),fontFace=font,fontScale=0.5,color=(255,0,255),thickness=1)
+    for code in decode(frame):
+        qrCode = code.data.decode('utf-8')
+        print(qrCode)
+        # Detecting  for order number
+        if qrCode == orderNo:
+            points = np.array([code.polygon],np.int32)
+            points = points.reshape((-1,1,2))
+            cv2.polylines(frame,[points],True,(0,255,0),5) 
+            rect = code.rect
+            rectOrigin = (rect[0],rect[1])
+            rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
+            cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(255,0,255),thickness=2)
+            cv2.putText(frame,'Order number',rectButtom,fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            return frame , True
+        else:
+            points = np.array([code.polygon],np.int32)
+            points = points.reshape((-1,1,2))
+            cv2.polylines(frame,[points],True,(0,0,255),5) 
+            rect = code.rect
+            rectOrigin = (rect[0],rect[1])
+            rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
+            cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+            cv2.putText(frame,'Invalid',rectButtom,fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+            continue 
+
+    return frame , False
+
+
 
 
 if __name__ == '__main__':
