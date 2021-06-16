@@ -62,102 +62,103 @@ def main():
             if diffTime > OneMonth: # time in second 
                 os.unlink(absPath)
 
-    # recording status
-    Record = False
-
-    Record , staffID , orderNo = QRscan()
-
-    # Information of order number and staff ID from qr code
-    qrRead = {'staff': staffID ,'order': orderNo }
-
-
-    while Record:
-
-        print(qrRead['staff'])
-        print(qrRead['order'])
-
-        # Create valid filename: First 4 character of ordernumber follow by date:time
-        filename =  qrRead['order'][:5] + '_'+ str(currentTime['day']) + '_' + currentTime['monthName'] + '_' + str(currentTime['year'])
-
-        ######## Start Recording Video ##########
-
-        # Return file name and finish time to use to label video filename
-        recVid , finishTime = recordingVdo(filename = filename,orderNo=qrRead['order'])
-        originalFilename = recVid + '_original.avi'
-
-        # Cut Footage
-        # Get FPS data duration of the video
-        vidData = getDurationFPS(fileInput=originalFilename)
-
-        # Cut the duration of video
-        print('Processing video....')
-        vidCutName = cutVideo(fileInput=originalFilename,filename=filename,videoData=vidData,durTarget=180,mode='cut')
-
-        # Add text and logo timestamp of finish process
-        vidEditName = editVideo(fileInput=vidCutName,filename=filename,id=qrRead,logoDir=logoDir,timeFinish=finishTime)
-        print('Video editing done!')
-
-        ######## Video recording success (and editing too) ##########
-
+    while True: # loop this forever
+        # recording status
         Record = False
 
-        ######## Move file to valid folder and delete original file ##########
+        Record , staffID , orderNo = QRscan()
 
-        # Move final editing video file to valid folder and delete the original
-        # Current directory is the folder that run this script
-        finishFilePath = os.path.join(parentDir,vidEditName)
-        fileStorePath = os.path.join(currentMontVdo,vidEditName) # !! This is the location of the final video output
-        shutil.copy(finishFilePath,fileStorePath)
-
-        #delete original video
-        filePathOri = os.path.join(parentDir,originalFilename)
-        cutPathOri = os.path.join(parentDir,vidCutName)
-
-        print(f'Deleting...{originalFilename}')
-        os.unlink(filePathOri)
-        if vidCutName != originalFilename:
-            print(f'Deleting...{vidCutName}')
-            os.unlink(cutPathOri)
-        print(f'Deleting....{vidEditName}')
-        os.unlink(finishFilePath)
-
-        ######## Finish moving and deleting file ##########
-
-        ######## Create video data and send to storage server ##########
-
-        # Create information for video
-        data = {}
-        # Open recent video record to read and encode to BASE64
-        with open(fileStorePath, mode='rb') as file:
-            videoData = file.read()
-        # Store video data
-        data['videoData'] = base64.encodebytes(videoData).decode('utf-8')
-
-        # Strore other information
-        data['videoName'] , data['fileType'] = os.path.splitext(vidEditName) # Extract file name and type
-        data['fileSize'] = os.path.getsize(fileStorePath)
-        data['dateCreate'] = time.ctime(os.path.getctime(fileStorePath))
-        data['staffID'] = qrRead['staff']
-        data['orderNo'] = qrRead['order']
-        
-        # Pack data into JSON Object
-        jsonData = json.dumps(data)
-
-        # with open('json.txt', 'w') as f:
-        #     f.write(jsonData)
-
-        ######## Create video data and send to storage server ##########
+        # Information of order number and staff ID from qr code
+        qrRead = {'staff': staffID ,'order': orderNo }
 
 
-        ######## Ask thse same staff if they want to packing more ##########
+        while Record:
 
-        Record , qrRead = recordAgain(QRinput = qrRead)
-        # exit = input("Exit(y/n)")
-        # print(exit.upper())
-        # if exit.upper() == 'Y':
-        #     break
+            print(qrRead['staff'])
+            print(qrRead['order'])
+
+            # Create valid filename: First 4 character of ordernumber follow by date:time
+            filename =  qrRead['order'][:5] + '_'+ str(currentTime['day']) + '_' + currentTime['monthName'] + '_' + str(currentTime['year'])
+
+            ######## Start Recording Video ##########
+
+            # Return file name and finish time to use to label video filename
+            recVid , finishTime = recordingVdo(filename = filename,orderNo=qrRead['order'])
+            originalFilename = recVid + '_original.avi'
+
+            # Cut Footage
+            # Get FPS data duration of the video
+            vidData = getDurationFPS(fileInput=originalFilename)
+
+            # Cut the duration of video
+            print('Processing video....')
+            vidCutName = cutVideo(fileInput=originalFilename,filename=filename,videoData=vidData,durTarget=180,mode='cut')
+
+            # Add text and logo timestamp of finish process
+            vidEditName = editVideo(fileInput=vidCutName,filename=filename,id=qrRead,logoDir=logoDir,timeFinish=finishTime)
+            print('Video editing done!')
+
+            ######## Video recording success (and editing too) ##########
+
+            Record = False
+
+            ######## Move file to valid folder and delete original file ##########
+
+            # Move final editing video file to valid folder and delete the original
+            # Current directory is the folder that run this script
+            finishFilePath = os.path.join(parentDir,vidEditName)
+            fileStorePath = os.path.join(currentMontVdo,vidEditName) # !! This is the location of the final video output
+            shutil.copy(finishFilePath,fileStorePath)
+
+            #delete original video
+            filePathOri = os.path.join(parentDir,originalFilename)
+            cutPathOri = os.path.join(parentDir,vidCutName)
+
+            print(f'Deleting...{originalFilename}')
+            os.unlink(filePathOri)
+            if vidCutName != originalFilename:
+                print(f'Deleting...{vidCutName}')
+                os.unlink(cutPathOri)
+            print(f'Deleting....{vidEditName}')
+            os.unlink(finishFilePath)
+
+            ######## Finish moving and deleting file ##########
+
+            ######## Create video data and send to storage server ##########
+
+            # Create information for video
+            data = {}
+            # Open recent video record to read and encode to BASE64
+            with open(fileStorePath, mode='rb') as file:
+                videoData = file.read()
+            # Store video data
+            data['videoData'] = base64.encodebytes(videoData).decode('utf-8')
+
+            # Strore other information
+            data['videoName'] , data['fileType'] = os.path.splitext(vidEditName) # Extract file name and type
+            data['fileSize'] = os.path.getsize(fileStorePath)
+            data['dateCreate'] = time.ctime(os.path.getctime(fileStorePath))
+            data['staffID'] = qrRead['staff']
+            data['orderNo'] = qrRead['order']
+            
+            # Pack data into JSON Object
+            jsonData = json.dumps(data)
+
+            # with open('json.txt', 'w') as f:
+            #     f.write(jsonData)
+
+            ######## Create video data and send to storage server ##########
+
+
+            ######## Ask thse same staff if they want to packing more ##########
+
+            Record , qrRead = recordAgain(QRinput = qrRead)
+            # exit = input("Exit(y/n)")
+            # print(exit.upper())
+            # if exit.upper() == 'Y':
+            #     break
     
-    sys.exit()
+    #sys.exit()
 
 def getCurrentTime():
     currentTime = {}
