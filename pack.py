@@ -449,7 +449,7 @@ def QRscan(staffStatus=False,orderStatus=False):
             cv2.putText(frame,'Please Order number',(0,60),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
             cv2.putText(frame,'Found',(400,60),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
 
-            cv2.putText(frame,'Start Recording....',(0,90),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            
 
             # Still showing QR code detect but not care for output
             decodeStaffID(frame,staffPattern)
@@ -458,15 +458,21 @@ def QRscan(staffStatus=False,orderStatus=False):
             # still showing display for a moment befor exiting function
             delay += 1
             if delay < 50:
+                cv2.putText(frame,'Start Recording' +'.'*int(delay/10),(0,90),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
                 cv2.imshow('frame',frame)
                 cv2.waitKey(1)
                 continue
             else:
+                cv2.putText(frame,'Start Recording' +'.'*int(delay/10),(0,90),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
                 cv2.imshow('frame',frame)
                 cv2.waitKey(1)
                 capture.release()
                 cv2.destroyAllWindows()
-                return True , staffID , orderID 
+                return True , staffID , orderID
+
+            
+
+            
 
            
 
