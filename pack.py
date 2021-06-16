@@ -617,9 +617,28 @@ def recordAgain(QRinput):
         try:
             detectOrder , orderNum = decodeOrderID(frame ,orderPattern) 
             if detectOrder:
-                QRinput['order'] = orderNum
-                cv2.imshow('frame',frame)
-                cv2.waitKey(1)
+                QRinput['order'] = orderNum  # Get the next order number 
+
+                # Display Status after detect order number 
+                displayFrame = FRAMERATE * 5   # duration of  status screen (in second)
+                for frame in range(displayFrame):
+                    isTrue, display = capture.read()
+                    decodeOrderID(display ,orderPattern)
+                    cv2.putText(display,'Next order Found!',(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+                    cv2.putText(display,'Order no: '+ QRinput['order'],(0,100),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+                    if showText == True:
+                        cv2.putText(display,'Restrating',(0,display.shape[0]-30),fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+                        count += 1
+                    elif showText == False:
+                        count += 1
+                    if (count > numFrame) and (showText == True):
+                        showText = False
+                        count = 0
+                    if (count > numFrame) and (showText == False):
+                        showText = True
+                        count = 0
+                    cv2.imshow('frame',display)
+                    cv2.waitKey(1)
                 capture.release()
                 cv2.destroyAllWindows()
                 return True , QRinput
@@ -628,10 +647,28 @@ def recordAgain(QRinput):
 
         # scan same staff ID to log off
         try: 
-            logOff , _ = decodeStaffID(frame,staffPattern)
-            if logOff:
-                cv2.imshow('frame',frame)
-                cv2.waitKey(1)
+            logOff , staffID = decodeStaffID(frame,staffPattern)
+            if (logOff) and (staffID == QRinput['staff']):
+                 # Display Status after detect order number 
+                displayFrame = FRAMERATE * 5   # duration of  status screen (in second)
+                for frame in range(displayFrame):
+                    isTrue, display = capture.read()
+                    decodeStaffID(display,staffPattern)
+                    cv2.putText(display,'Detect Staff ID' + staffID,(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+                    cv2.putText(display,'Finished Job ',(0,100),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+                    if showText == True:
+                        cv2.putText(display,'Logging off',(0,display.shape[0]-30),fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+                        count += 1
+                    elif showText == False:
+                        count += 1
+                    if (count > numFrame) and (showText == True):
+                        showText = False
+                        count = 0
+                    if (count > numFrame) and (showText == False):
+                        showText = True
+                        count = 0
+                    cv2.imshow('frame',display)
+                    cv2.waitKey(1)
                 capture.release()
                 cv2.destroyAllWindows()
                 return False , QRinput
