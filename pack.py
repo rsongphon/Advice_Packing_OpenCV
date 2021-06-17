@@ -192,7 +192,7 @@ def recordingVdo(filename,orderNo):
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     #FRAMERATE = 17 # FRAMERATE must be matach with the camera. See specification !!
     finish = False
-    font = cv2.FONT_HERSHEY_SIMPLEX 
+    #font = cv2.FONT_HERSHEY_SIMPLEX 
 
     count = 0 # for flickering text
     showText = True
@@ -201,13 +201,16 @@ def recordingVdo(filename,orderNo):
     
     # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
     output = cv2.VideoWriter(filename+'_original.avi',fourcc,FRAMERATE,(width,height))
+
+    start_time = time.time()
     while not finish:
         isTrue, oriframe = CAMERA.read()
         output.write(oriframe)
+
         editFrame , finish = scanToExit(oriframe,orderNo)
 
         if showText == True:
-            editFrame = cv2.putText(editFrame,'Recording',(int(editFrame.shape[1]*0.75),50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+            editFrame = cv2.putText(editFrame,'Recording',(int(editFrame.shape[1]*0.75),50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
             count += 1
         elif showText == False:
             count += 1
@@ -218,6 +221,12 @@ def recordingVdo(filename,orderNo):
             showText = True
             count = 0
 
+        current_time = time.time()
+        hours, rem = divmod(current_time-start_time, 3600)
+        minutes, seconds = divmod(rem, 60)
+        time_text = "{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds)
+
+        editFrame = cv2.putText(editFrame,time_text,(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
 
         cv2.imshow(WINDOW_NAME,editFrame)
         cv2.waitKey(INTERFRAME_WAIT_MS)
@@ -232,8 +241,8 @@ def recordingVdo(filename,orderNo):
     for frame in range(displayFrame):
         isTrue, display = CAMERA.read()
         display , _ = scanToExit(display,orderNo) # still display order no.
-        cv2.putText(display,'Finished!',(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
-        cv2.putText(display,'Stop recording'+'.'*int(frame/FRAMERATE),(0,80),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+        cv2.putText(display,'Finished!',(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
+        cv2.putText(display,'Stop recording'+'.'*int(frame/FRAMERATE),(0,80),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
         cv2.imshow(WINDOW_NAME,display)
         cv2.waitKey(INTERFRAME_WAIT_MS)
 
@@ -261,7 +270,7 @@ def editVideo(fileInput,filename,id,logoDir,timeFinish):
     while ret: # ret return True if the frame reading is success. 
         #waitScreen(mode ='edit')
         # Put the text in image 
-        font = cv2.FONT_HERSHEY_SIMPLEX # adjust font type
+        #font = cv2.FONT_HERSHEY_SIMPLEX # adjust font type
         textLocation_staff = (0,frame.shape[0]-10)  # adjust the minus value to move the row
         textLocation_order = (0,frame.shape[0]-30)  # adjust the minus value to move the row
         textLocation_finishTime = (0,frame.shape[0]-50)
@@ -272,10 +281,10 @@ def editVideo(fileInput,filename,id,logoDir,timeFinish):
                                                         timeFinish['day'],timeFinish['monthName'],timeFinish['year'])
 
         cv2.putText(img = frame,text=text_staff,org=textLocation_staff, 
-                    fontFace=font, fontScale=0.5, color=(0, 255, 150), thickness=1, lineType =cv2.LINE_AA)
+                    fontFace=FONT, fontScale=0.5, color=(0, 255, 150), thickness=1, lineType =cv2.LINE_AA)
         cv2.putText(img = frame,text=text_order,org=textLocation_order,
-                    fontFace=font, fontScale=0.5, color=(0, 255, 150), thickness= 1, lineType=cv2.LINE_AA)
-        cv2.putText(img = frame,text=text_finishTime ,org=textLocation_finishTime,fontFace=font, fontScale=0.5, color=(255, 245, 0), thickness= 1, lineType=cv2.LINE_AA)
+                    fontFace=FONT, fontScale=0.5, color=(0, 255, 150), thickness= 1, lineType=cv2.LINE_AA)
+        cv2.putText(img = frame,text=text_finishTime ,org=textLocation_finishTime,fontFace=FONT, fontScale=0.5, color=(255, 245, 0), thickness= 1, lineType=cv2.LINE_AA)
         
         #Put logo in the image
         logoAbsPath = os.path.join(logoDir,'advice.jpg') # Change logo here
@@ -448,11 +457,11 @@ def QRscan(staffStatus=False,orderStatus=False):
 
     while True:
         ret,frame = CAMERA.read()
-        font = cv2.FONT_HERSHEY_SIMPLEX
+        #font = cv2.FONT_HERSHEY_SIMPLEX
 
         # Ask for staff ID first
         if not staffStatus:
-            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
             try:
                 staffStatus , staffID = decodeStaffID(frame,staffPattern) # if found ID return True status
                 #print(staffID)
@@ -462,10 +471,10 @@ def QRscan(staffStatus=False,orderStatus=False):
 
         # Then ask for order number or start another packing process for the same staff
         if staffStatus and not orderStatus:
-            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
-            cv2.putText(frame,'Found',(400,30),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+            cv2.putText(frame,'Found',(400,30),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
 
-            cv2.putText(frame,'Please Order number',(0,60),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            cv2.putText(frame,'Please Order number',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
             
             # Still showing QR code detect but not care for output
             decodeStaffID(frame,staffPattern)
@@ -499,11 +508,11 @@ def QRscan(staffStatus=False,orderStatus=False):
 
         # After recieve both ID and order number. Show status for some time before start recording
         if staffStatus and orderStatus:
-            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
-            cv2.putText(frame,'Found',(400,30),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+            cv2.putText(frame,'Found',(400,30),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
 
-            cv2.putText(frame,'Please Order number',(0,60),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
-            cv2.putText(frame,'Found',(400,60),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+            cv2.putText(frame,'Please Order number',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+            cv2.putText(frame,'Found',(400,60),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
 
             
 
@@ -514,12 +523,12 @@ def QRscan(staffStatus=False,orderStatus=False):
             # still showing display for a moment befor exiting function
             delay += 1
             if delay < 50:
-                cv2.putText(frame,'Start Recording' +'.'*int(delay/10),(0,90),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+                cv2.putText(frame,'Start Recording' +'.'*int(delay/10),(0,90),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
                 cv2.imshow(WINDOW_NAME,frame)
                 cv2.waitKey(INTERFRAME_WAIT_MS)
                 continue
             else:
-                cv2.putText(frame,'Start Recording' +'.'*int(delay/10),(0,90),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+                cv2.putText(frame,'Start Recording' +'.'*int(delay/10),(0,90),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
                 cv2.imshow(WINDOW_NAME,frame)
                 cv2.waitKey(INTERFRAME_WAIT_MS)
                 #capture.release()
@@ -532,7 +541,7 @@ def QRscan(staffStatus=False,orderStatus=False):
     
 def decodeStaffID(frame,staffPattern):
     # Scan for staff ID number then border the rectangle and put text on the screen 
-    font = cv2.FONT_HERSHEY_SIMPLEX
+    #font = cv2.FONT_HERSHEY_SIMPLEX
     for code in decode(frame):
         qrCode = code.data.decode('utf-8')
         if qrCode[:4] == staffPattern:
@@ -553,8 +562,8 @@ def decodeStaffID(frame,staffPattern):
             # Adjust text to middle buttom point of the  rectangle
             # bottom point(bottom-left) of the rectangle : origin + height
             rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
-            cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(255,0,255),thickness=2)
-            cv2.putText(frame,'Staff ID',rectButtom,fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            cv2.putText(frame,qrCode,rectOrigin,fontFace=FONT,fontScale=1,color=(255,0,255),thickness=2)
+            cv2.putText(frame,'Staff ID',rectButtom,fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
             return True , qrCode
         else:
             continue
@@ -562,7 +571,7 @@ def decodeStaffID(frame,staffPattern):
 
 def decodeOrderID(frame,orderPattern):
     # Scan for order number then border the rectangle and put text on the screen 
-    font = cv2.FONT_HERSHEY_SIMPLEX
+    #font = cv2.FONT_HERSHEY_SIMPLEX
     for code in decode(frame):
         qrCode = code.data.decode('utf-8')
         # Detecting  for order number
@@ -574,8 +583,8 @@ def decodeOrderID(frame,orderPattern):
             rect = code.rect
             rectOrigin = (rect[0],rect[1])
             rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
-            cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(255,0,255),thickness=2)
-            cv2.putText(frame,'Order number',rectButtom,fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            cv2.putText(frame,qrCode,rectOrigin,fontFace=FONT,fontScale=1,color=(255,0,255),thickness=2)
+            cv2.putText(frame,'Order number',rectButtom,fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
             return True , qrCode
         else:
             continue  
@@ -583,9 +592,9 @@ def decodeOrderID(frame,orderPattern):
 def scanToExit(frame,orderNo):
     # In record function call this to implement scaning order number to end the recording process
 
-    font = cv2.FONT_HERSHEY_SIMPLEX
+    #font = cv2.FONT_HERSHEY_SIMPLEX
     text = 'Scan order QRcode again to stop recording after finish packing'
-    cv2.putText(frame,text,(0,frame.shape[0]-10),fontFace=font,fontScale=0.5,color=(255,0,255),thickness=1)
+    cv2.putText(frame,text,(0,frame.shape[0]-10),fontFace=FONT,fontScale=0.5,color=(255,0,255),thickness=1)
     for code in decode(frame):
         qrCode = code.data.decode('utf-8')
         #print(qrCode)
@@ -597,8 +606,8 @@ def scanToExit(frame,orderNo):
             rect = code.rect
             rectOrigin = (rect[0],rect[1])
             rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
-            cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(255,0,255),thickness=2)
-            cv2.putText(frame,'Order number',rectButtom,fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            cv2.putText(frame,qrCode,rectOrigin,fontFace=FONT,fontScale=1,color=(255,0,255),thickness=2)
+            cv2.putText(frame,'Order number',rectButtom,fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
             return frame , True
         else:
             #detect invalid number (not order number)
@@ -608,8 +617,8 @@ def scanToExit(frame,orderNo):
             rect = code.rect
             rectOrigin = (rect[0],rect[1])
             rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
-            cv2.putText(frame,qrCode,rectOrigin,fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
-            cv2.putText(frame,'Invalid',rectButtom,fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+            cv2.putText(frame,qrCode,rectOrigin,fontFace=FONT,fontScale=1,color=(0,0,255),thickness=2)
+            cv2.putText(frame,'Invalid',rectButtom,fontFace=FONT,fontScale=1,color=(0,0,255),thickness=2)
             continue 
 
     return frame , False
@@ -618,7 +627,7 @@ def recordAgain(QRinput):
     # Information of order number and staff ID from qr code
     # QRinput is dictionary {'staff': staffID ,'order': orderNo }
 
-    font = cv2.FONT_HERSHEY_SIMPLEX 
+    #font = cv2.FONT_HERSHEY_SIMPLEX 
     #capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
     # regrex pattern to detect staff and order number
 
@@ -635,9 +644,9 @@ def recordAgain(QRinput):
 
     while True:
         ret,frame = CAMERA.read()
-        frame = cv2.putText(frame,'Staff ID :' + QRinput['staff'] ,(0,50),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+        frame = cv2.putText(frame,'Staff ID :' + QRinput['staff'] ,(0,50),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
         if showText == True:
-            frame = cv2.putText(frame,'Waiting for next QR order',(0,100),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
+            frame = cv2.putText(frame,'Waiting for next QR order',(0,100),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
             count += 1
         elif showText == False:
             count += 1
@@ -648,7 +657,7 @@ def recordAgain(QRinput):
             showText = True
             count = 0
 
-        frame = cv2.putText(frame,'Scan Staff ID to log off' ,(0,frame.shape[0]-20),fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+        frame = cv2.putText(frame,'Scan Staff ID to log off' ,(0,frame.shape[0]-20),fontFace=FONT,fontScale=1,color=(0,0,255),thickness=2)
 
         # scan new order number to begin record next package
         try:
@@ -661,11 +670,11 @@ def recordAgain(QRinput):
                 for frame in range(displayFrame):
                     isTrue, display = CAMERA.read()
                     decodeOrderID(display ,orderPattern)
-                    cv2.putText(display,'Next order Found!',(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
-                    cv2.putText(display,'Order no: '+ QRinput['order'],(0,100),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+                    cv2.putText(display,'Next order Found!',(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
+                    cv2.putText(display,'Order no: '+ QRinput['order'],(0,100),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
                     # Flickering text
                     if showText == True:
-                        cv2.putText(display,'Restrating',(0,display.shape[0]-30),fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+                        cv2.putText(display,'Restrating',(0,display.shape[0]-30),fontFace=FONT,fontScale=1,color=(0,0,255),thickness=2)
                         count += 1
                     elif showText == False:
                         count += 1
@@ -692,11 +701,11 @@ def recordAgain(QRinput):
                 for frame in range(displayFrame):
                     isTrue, display = CAMERA.read()
                     decodeStaffID(display,staffPattern)
-                    cv2.putText(display,'Detect Staff ID ' + staffID,(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
-                    cv2.putText(display,'Finished Job ',(0,100),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
+                    cv2.putText(display,'Detect Staff ID ' + staffID,(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
+                    cv2.putText(display,'Finished Job ',(0,100),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
                     # Flickering text
                     if showText == True:
-                        cv2.putText(display,'Logging off',(0,display.shape[0]-30),fontFace=font,fontScale=1,color=(0,0,255),thickness=2)
+                        cv2.putText(display,'Logging off',(0,display.shape[0]-30),fontFace=FONT,fontScale=1,color=(0,0,255),thickness=2)
                         count += 1
                     elif showText == False:
                         count += 1
