@@ -11,7 +11,18 @@ from pyzbar.pyzbar import decode
 
 
 MONTH = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
-FRAMERATE = 17
+
+WINDOW_NAME = 'Screen'
+INTERFRAME_WAIT_MS = 1
+
+CAMERA = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
+
+#cv2.namedWindow(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN)
+#cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+FONT = cv2.FONT_HERSHEY_SIMPLEX
+
+FRAMERATE = 30
 
 
 def main():
@@ -81,9 +92,11 @@ def main():
             filename =  qrRead['order'][:5] + '_'+ str(currentTime['day']) + '_' + currentTime['monthName'] + '_' + str(currentTime['year'])
 
             ######## Start Recording Video ##########
-
+    
             # Return file name and finish time to use to label video filename
             recVid , finishTime = recordingVdo(filename = filename,orderNo=qrRead['order'])
+
+            
             originalFilename = recVid + '_original.avi'
 
             # Cut Footage
@@ -173,9 +186,9 @@ def getCurrentTime():
 
 def recordingVdo(filename,orderNo):
     # Start Capture raw footage
-    capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
-    width = int(capture.get(3))
-    height = int(capture.get(4))
+    #capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
+    width = int(CAMERA.get(3))
+    height = int(CAMERA.get(4))
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     #FRAMERATE = 17 # FRAMERATE must be matach with the camera. See specification !!
     finish = False
@@ -189,7 +202,7 @@ def recordingVdo(filename,orderNo):
     # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
     output = cv2.VideoWriter(filename+'_original.avi',fourcc,FRAMERATE,(width,height))
     while not finish:
-        isTrue, oriframe = capture.read()
+        isTrue, oriframe = CAMERA.read()
         output.write(oriframe)
         editFrame , finish = scanToExit(oriframe,orderNo)
 
@@ -206,8 +219,8 @@ def recordingVdo(filename,orderNo):
             count = 0
 
 
-        cv2.imshow('frame',editFrame)
-        cv2.waitKey(1)
+        cv2.imshow(WINDOW_NAME,editFrame)
+        cv2.waitKey(INTERFRAME_WAIT_MS)
 
     
     finishTime = getCurrentTime() # get finish time to label to video
@@ -217,15 +230,15 @@ def recordingVdo(filename,orderNo):
     
 
     for frame in range(displayFrame):
-        isTrue, display = capture.read()
+        isTrue, display = CAMERA.read()
         display , _ = scanToExit(display,orderNo) # still display order no.
         cv2.putText(display,'Finished!',(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
         cv2.putText(display,'Stop recording'+'.'*int(frame/FRAMERATE),(0,80),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
-        cv2.imshow('frame',display)
-        cv2.waitKey(1)
+        cv2.imshow(WINDOW_NAME,display)
+        cv2.waitKey(INTERFRAME_WAIT_MS)
 
 
-    capture.release()
+    #capture.release()
     output.release()
     cv2.destroyAllWindows()
 
@@ -246,7 +259,7 @@ def editVideo(fileInput,filename,id,logoDir,timeFinish):
     ret, frame = capture.read() # start reading
 
     while ret: # ret return True if the frame reading is success. 
-
+        #waitScreen(mode ='edit')
         # Put the text in image 
         font = cv2.FONT_HERSHEY_SIMPLEX # adjust font type
         textLocation_staff = (0,frame.shape[0]-10)  # adjust the minus value to move the row
@@ -332,8 +345,10 @@ def cutVideo(fileInput,filename,videoData,durTarget,mode='cut'):
 
             while ret:
                 if countFrame<startPoint:
+                    #waitScreen()
                     pass
                 else:
+                    #waitScreen()
                     output.write(frame)
                 ret, frame = capture.read()
                 countFrame += 1     
@@ -363,6 +378,7 @@ def cutVideo(fileInput,filename,videoData,durTarget,mode='cut'):
 
             ret, frame = capture.read() # start reading
             while ret:
+                #waitScreen()
                 output.write(frame)
                 ret, frame = capture.read()
 
@@ -415,7 +431,10 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
     return oriFrame
 
 def QRscan(staffStatus=False,orderStatus=False):
-    capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
+    ##### This is IDLE state (starting point) that alway return to  #####
+    ## Return video capture object class from this function##
+
+    #capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
 
     # Regrex to identify  staff number and ordernumber
     # Staff ID format: Ex 1110
@@ -428,7 +447,7 @@ def QRscan(staffStatus=False,orderStatus=False):
     #FRAMERATE = 17
 
     while True:
-        ret,frame = capture.read()
+        ret,frame = CAMERA.read()
         font = cv2.FONT_HERSHEY_SIMPLEX
 
         # Ask for staff ID first
@@ -496,19 +515,19 @@ def QRscan(staffStatus=False,orderStatus=False):
             delay += 1
             if delay < 50:
                 cv2.putText(frame,'Start Recording' +'.'*int(delay/10),(0,90),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
-                cv2.imshow('frame',frame)
-                cv2.waitKey(1)
+                cv2.imshow(WINDOW_NAME,frame)
+                cv2.waitKey(INTERFRAME_WAIT_MS)
                 continue
             else:
                 cv2.putText(frame,'Start Recording' +'.'*int(delay/10),(0,90),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
-                cv2.imshow('frame',frame)
-                cv2.waitKey(1)
-                capture.release()
-                cv2.destroyAllWindows()
+                cv2.imshow(WINDOW_NAME,frame)
+                cv2.waitKey(INTERFRAME_WAIT_MS)
+                #capture.release()
+                #cv2.destroyAllWindows()
                 return True , staffID , orderID
 
-        cv2.imshow('frame',frame)
-        cv2.waitKey(1)
+        cv2.imshow(WINDOW_NAME,frame)
+        cv2.waitKey(INTERFRAME_WAIT_MS)
 
     
 def decodeStaffID(frame,staffPattern):
@@ -600,7 +619,7 @@ def recordAgain(QRinput):
     # QRinput is dictionary {'staff': staffID ,'order': orderNo }
 
     font = cv2.FONT_HERSHEY_SIMPLEX 
-    capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
+    #capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
     # regrex pattern to detect staff and order number
 
     # Regrex to identify  staff number and ordernumber
@@ -615,7 +634,7 @@ def recordAgain(QRinput):
     numFrame = 10 # number of frame for flickering text
 
     while True:
-        ret,frame = capture.read()
+        ret,frame = CAMERA.read()
         frame = cv2.putText(frame,'Staff ID :' + QRinput['staff'] ,(0,50),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
         if showText == True:
             frame = cv2.putText(frame,'Waiting for next QR order',(0,100),fontFace=font,fontScale=1,color=(255,255,0),thickness=2)
@@ -640,7 +659,7 @@ def recordAgain(QRinput):
                 # Display Status after detect order number 
                 displayFrame = FRAMERATE * 5   # duration of  status screen (in second)
                 for frame in range(displayFrame):
-                    isTrue, display = capture.read()
+                    isTrue, display = CAMERA.read()
                     decodeOrderID(display ,orderPattern)
                     cv2.putText(display,'Next order Found!',(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
                     cv2.putText(display,'Order no: '+ QRinput['order'],(0,100),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
@@ -656,10 +675,10 @@ def recordAgain(QRinput):
                     if (count > numFrame) and (showText == False):
                         showText = True
                         count = 0
-                    cv2.imshow('frame',display)
-                    cv2.waitKey(1)
-                capture.release()
-                cv2.destroyAllWindows()
+                    cv2.imshow(WINDOW_NAME,display)
+                    cv2.waitKey(INTERFRAME_WAIT_MS)
+                #capture.release()
+                #cv2.destroyAllWindows()
                 return True , QRinput
         except TypeError:
             pass
@@ -671,7 +690,7 @@ def recordAgain(QRinput):
                  # Display Status after detect order number 
                 displayFrame = FRAMERATE * 5   # duration of  status screen (in second)
                 for frame in range(displayFrame):
-                    isTrue, display = capture.read()
+                    isTrue, display = CAMERA.read()
                     decodeStaffID(display,staffPattern)
                     cv2.putText(display,'Detect Staff ID ' + staffID,(0,50),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
                     cv2.putText(display,'Finished Job ',(0,100),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
@@ -687,18 +706,32 @@ def recordAgain(QRinput):
                     if (count > numFrame) and (showText == False):
                         showText = True
                         count = 0
-                    cv2.imshow('frame',display)
-                    cv2.waitKey(1)
-                capture.release()
-                cv2.destroyAllWindows()
+                    cv2.imshow(WINDOW_NAME,display)
+                    cv2.waitKey(INTERFRAME_WAIT_MS)
+                #capture.release()
+                #cv2.destroyAllWindows()
                 return False , QRinput
         except TypeError:
             pass
 
-        cv2.imshow('Frame',frame)
+        cv2.imshow(WINDOW_NAME,frame)
+        cv2.waitKey(INTERFRAME_WAIT_MS)
+
+def waitScreen(mode):
+
+    ## note wait screen make video edit longer##
+    if mode == 'edit':
+        _, waitFrame = CAMERA.read()
+        waitFrame = cv2.putText(waitFrame,'Editing video',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+        waitFrame = cv2.putText(waitFrame,'Please wait',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+        cv2.imshow(WINDOW_NAME,waitFrame)
         cv2.waitKey(1)
-
-
+    elif mode == 'cut':
+        _, waitFrame = CAMERA.read()
+        waitFrame = cv2.putText(waitFrame,'Cutting video',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+        waitFrame = cv2.putText(waitFrame,'Please wait',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+        cv2.imshow(WINDOW_NAME,waitFrame)
+        cv2.waitKey(1)
 
 if __name__ == '__main__':
     main()
