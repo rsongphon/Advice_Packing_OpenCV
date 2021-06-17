@@ -22,7 +22,7 @@ CAMERA = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
-FRAMERATE = 30
+FRAMERATE = 30 # Frame rate must be match with the camera
 
 
 def main():
@@ -77,12 +77,19 @@ def main():
         # recording status
         Record = False
 
-        Record , staffID , orderNo = QRscan()
+        # Wait for QR code for staffID and order number to begin recording video
+        try:
+            Record , staffID , orderNo = QRscan()
+
+        # Or manually exit here (check condition in QR scan function)
+        except TypeError: # Return None type from QRscan function raise TypeError
+            print('Exiting program')
+            break
 
         # Information of order number and staff ID from qr code
         qrRead = {'staff': staffID ,'order': orderNo }
 
-
+        # Start recording
         while Record:
 
             print(qrRead['staff'])
@@ -171,7 +178,9 @@ def main():
             # if exit.upper() == 'Y':
             #     break
     
-    #sys.exit()
+    CAMERA.release()
+    cv2.destroyAllWindows()
+    sys.exit()
 
 def getCurrentTime():
     currentTime = {}
@@ -202,7 +211,8 @@ def recordingVdo(filename,orderNo):
     # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
     output = cv2.VideoWriter(filename+'_original.avi',fourcc,FRAMERATE,(width,height))
 
-    start_time = time.time()
+    start_time = time.time() # Start time counter
+
     while not finish:
         isTrue, oriframe = CAMERA.read()
         output.write(oriframe)
@@ -221,11 +231,11 @@ def recordingVdo(filename,orderNo):
             showText = True
             count = 0
 
+        # Show time counter on the video #
         current_time = time.time()
         hours, rem = divmod(current_time-start_time, 3600)
         minutes, seconds = divmod(rem, 60)
         time_text = "{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds)
-
         editFrame = cv2.putText(editFrame,time_text,(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
 
         cv2.imshow(WINDOW_NAME,editFrame)
@@ -441,7 +451,7 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
 
 def QRscan(staffStatus=False,orderStatus=False):
     ##### This is IDLE state (starting point) that alway return to  #####
-    ## Return video capture object class from this function##
+    ## Return video capture object class from this function ##
 
     #capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
 
@@ -536,9 +546,11 @@ def QRscan(staffStatus=False,orderStatus=False):
                 return True , staffID , orderID
 
         cv2.imshow(WINDOW_NAME,frame)
-        cv2.waitKey(INTERFRAME_WAIT_MS)
 
-    
+        ### Manually exit here ###
+        if cv2.waitKey(INTERFRAME_WAIT_MS) & 0xFF == ord('q'):
+            return 
+
 def decodeStaffID(frame,staffPattern):
     # Scan for staff ID number then border the rectangle and put text on the screen 
     #font = cv2.FONT_HERSHEY_SIMPLEX
@@ -567,7 +579,6 @@ def decodeStaffID(frame,staffPattern):
             return True , qrCode
         else:
             continue
-
 
 def decodeOrderID(frame,orderPattern):
     # Scan for order number then border the rectangle and put text on the screen 
