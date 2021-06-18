@@ -8,6 +8,7 @@ import base64
 import json
 from pyzbar.pyzbar import decode
 import re
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 
 MONTH = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
@@ -344,36 +345,51 @@ def cutVideo(fileInput,filename,videoData,durTarget,mode='cut'):
         numFrameExpect = FRAMERATE * durTarget
 
         if videoData['durationSec'] > durTarget:
-            print('Video lenght is {} minute . More than {} minute'.format(str(int(videoData['durationSec']/60)),str(int(durTarget/60))))
-            # Subtract actual video frame with expect frame to get checkpoint of the starting frame (last batch of the video)
-            startPoint = videoData['frameCount'] - numFrameExpect
-            #print(startPoint)
+            filename = f'{filename}_cut.avi'
+            #start_time = float((videoData['durationSec']/60) - 3.0)
+            start_time = videoData['durationSec'] - 180
+            print(start_time)
+            #end_time = float(videoData['durationSec']/60)
+            end_time = videoData['durationSec']
+            print(end_time)
 
-            # Start Capture reading video
-            capture = cv2.VideoCapture(fileInput) 
-            width = int(capture.get(3))
-            height = int(capture.get(4))
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter 
-            #FRAMERATE = 17 # Same as original video
-            filename = f'{filename}_cut.avi'  # change file name here
-            #output = cv2.VideoWriter('cut{}min.avi'.format(str(durTarget/60)),fourcc,FRAMERATE, (width,height))
-            output = cv2.VideoWriter(filename,fourcc,FRAMERATE, (width,height))
-
-            ret, frame = capture.read() # start reading
-            countFrame = 1 # first frame
-
-            while ret:
-                if countFrame<startPoint:
-                    #waitScreen()
-                    pass
-                else:
-                    #waitScreen()
-                    output.write(frame)
-                ret, frame = capture.read()
-                countFrame += 1     
+            ffmpeg_extract_subclip(fileInput, start_time, end_time, targetname=filename)
             
-            capture.release()
-            output.release()
+            # Prototype code
+
+            # print('Video lenght is {} minute . More than {} minute'.format(str(int(videoData['durationSec']/60)),str(int(durTarget/60))))
+            # # Subtract actual video frame with expect frame to get checkpoint of the starting frame (last batch of the video)
+            # startPoint = videoData['frameCount'] - numFrameExpect
+            # #print(startPoint)
+
+            # # Start Capture reading video
+            # capture = cv2.VideoCapture(fileInput) 
+            # width = int(capture.get(3))
+            # height = int(capture.get(4))
+            # fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter 
+            # #FRAMERATE = 17 # Same as original video
+            # filename = f'{filename}_cut.avi'  # change file name here
+            # #output = cv2.VideoWriter('cut{}min.avi'.format(str(durTarget/60)),fourcc,FRAMERATE, (width,height))
+            # output = cv2.VideoWriter(filename,fourcc,FRAMERATE, (width,height))
+
+            # ret, frame = capture.read() # start reading
+            # countFrame = 1 # first frame
+
+            # while ret:
+            #     if countFrame<startPoint:
+            #         #waitScreen()
+            #         pass
+            #     else:
+            #         #waitScreen()
+            #         output.write(frame)
+            #     ret, frame = capture.read()
+            #     countFrame += 1     
+            
+            # capture.release()
+            # output.release()
+
+
+
 
             return filename
         else:
