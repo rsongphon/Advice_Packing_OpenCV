@@ -473,7 +473,7 @@ def QRscan(staffStatus=False,orderStatus=False):
         if not staffStatus:
             cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
             try:
-                staffStatus , staffID = decodeStaffID(frame,staffPattern) # if found ID return True status
+                staffStatus , staffID = decodeStaffID(frame) # if found ID return True status
                 #print(staffID)
             except TypeError: # if function return None (no QR code found) must handle TypeError
                 #print('Not detect staff ID yet')
@@ -487,10 +487,10 @@ def QRscan(staffStatus=False,orderStatus=False):
             cv2.putText(frame,'Please Order number',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
             
             # Still showing QR code detect but not care for output
-            decodeStaffID(frame,staffPattern)
+            decodeStaffID(frame)
 
             try:
-                orderStatus , orderID = decodeOrderID(frame,orderPattern)
+                orderStatus , orderID = decodeOrderID(frame)
                 #print(orderID)
             except TypeError: # if function return None (no QR code found) must handle TypeError
                 #print('Not detect order number yet')
@@ -527,8 +527,8 @@ def QRscan(staffStatus=False,orderStatus=False):
             
 
             # Still showing QR code detect but not care for output
-            decodeStaffID(frame,staffPattern)
-            decodeOrderID(frame,orderPattern)
+            decodeStaffID(frame)
+            decodeOrderID(frame)
 
             # still showing display for a moment befor exiting function
             delay += 1
@@ -551,12 +551,12 @@ def QRscan(staffStatus=False,orderStatus=False):
         if cv2.waitKey(INTERFRAME_WAIT_MS) & 0xFF == ord('q'):
             return 
 
-def decodeStaffID(frame,staffPattern):
+def decodeStaffID(frame):
     # Scan for staff ID number then border the rectangle and put text on the screen 
     #font = cv2.FONT_HERSHEY_SIMPLEX
     for code in decode(frame):
         qrCode = code.data.decode('utf-8')
-        if qrCode[:4] == staffPattern:
+        if QRregex(inputQR=qrCode,mode='staff'): # Detect qrcode if match pattern
             #cv2.putText(frame,'Found',(400,30),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
             # get the point of the polygon
             points = np.array([code.polygon],np.int32)
@@ -580,13 +580,13 @@ def decodeStaffID(frame,staffPattern):
         else:
             continue
 
-def decodeOrderID(frame,orderPattern):
+def decodeOrderID(frame):
     # Scan for order number then border the rectangle and put text on the screen 
     #font = cv2.FONT_HERSHEY_SIMPLEX
     for code in decode(frame):
         qrCode = code.data.decode('utf-8')
         # Detecting  for order number
-        if qrCode[:3] == orderPattern:
+        if QRregex(inputQR=qrCode,mode='order'):
             #cv2.putText(frame,'Found',(400,60),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
             points = np.array([code.polygon],np.int32)
             points = points.reshape((-1,1,2))
@@ -640,14 +640,6 @@ def recordAgain(QRinput):
 
     #font = cv2.FONT_HERSHEY_SIMPLEX 
     #capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
-    # regrex pattern to detect staff and order number
-
-    # Regrex to identify  staff number and ordernumber
-    # Staff ID format: Ex 1110
-    staffPattern = '1110'
-    
-    # Order number format : ex DSG
-    orderPattern = 'DSG'
     
     count = 0 # for flickering text
     showText = True
@@ -672,7 +664,7 @@ def recordAgain(QRinput):
 
         # scan new order number to begin record next package
         try:
-            detectOrder , orderNum = decodeOrderID(frame ,orderPattern) 
+            detectOrder , orderNum = decodeOrderID(frame) 
             if detectOrder:
                 QRinput['order'] = orderNum  # Get the next order number 
 
@@ -680,12 +672,12 @@ def recordAgain(QRinput):
                 displayFrame = FRAMERATE * 5   # duration of  status screen (in second)
                 for frame in range(displayFrame):
                     isTrue, display = CAMERA.read()
-                    decodeOrderID(display ,orderPattern)
+                    decodeOrderID(display)
                     cv2.putText(display,'Next order Found!',(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
                     cv2.putText(display,'Order no: '+ QRinput['order'],(0,100),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
                     # Flickering text
                     if showText == True:
-                        cv2.putText(display,'Restrating',(0,display.shape[0]-30),fontFace=FONT,fontScale=1,color=(0,0,255),thickness=2)
+                        cv2.putText(display,'Restarting',(0,display.shape[0]-30),fontFace=FONT,fontScale=1,color=(0,0,255),thickness=2)
                         count += 1
                     elif showText == False:
                         count += 1
@@ -705,13 +697,13 @@ def recordAgain(QRinput):
 
         # scan same staff ID to log off
         try: 
-            logOff , staffID = decodeStaffID(frame,staffPattern)
+            logOff , staffID = decodeStaffID(frame)
             if (logOff) and (staffID == QRinput['staff']):
                  # Display Status after detect order number 
                 displayFrame = FRAMERATE * 5   # duration of  status screen (in second)
                 for frame in range(displayFrame):
                     isTrue, display = CAMERA.read()
-                    decodeStaffID(display,staffPattern)
+                    decodeStaffID(display)
                     cv2.putText(display,'Detect Staff ID ' + staffID,(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
                     cv2.putText(display,'Finished Job ',(0,100),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
                     # Flickering text
@@ -782,32 +774,29 @@ def QRregex(inputQR,mode):
     if (mode == 'staff'):
         staff_mo = staff_ID_regex.search(inputQR)
         if staff_mo != None:
-            print(staff_mo.group())
+            #print(staff_mo.group())
             return True
         else:
-            print('Invalid')
+            #print('Invalid')
             return False
 
     elif (mode =='order'):
         order_mo = order_number_regex.search(inputQR)
         if order_mo != None:
-            print(order_mo.group())
+            #print(order_mo.group())
             return True
         else:
-            print('Invalid')
+            #print('Invalid')
             return False
     else:
         print('Invalid mode')
         return False
 
 
-    
-
-
 if __name__ == '__main__':
-    #main() # Run script
-    inputQR = input('enter test: ')
-    QRregex(inputQR,mode='order')
+    main() # Run script
+    #inputQR = input('enter test: ')
+    #QRregex(inputQR,mode='order')
     
     
     
