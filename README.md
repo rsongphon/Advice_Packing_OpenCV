@@ -82,6 +82,8 @@ To make a system to record warehouse packing procedure by using Raspberry Pi and
     - We can create a log file to store the information in case of we need to retrive information
       - Staff name and order number process today tie to date and time
 
+13. PIR Sensor
+
 ###### Psedocode
 
 - Start Program Automatically

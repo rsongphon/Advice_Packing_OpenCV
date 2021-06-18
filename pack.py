@@ -7,7 +7,7 @@ import shutil
 import base64
 import json
 from pyzbar.pyzbar import decode
-
+import re
 
 
 MONTH = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
@@ -753,8 +753,61 @@ def waitScreen(mode):
         cv2.imshow(WINDOW_NAME,waitFrame)
         cv2.waitKey(1)
 
+def QRregex(inputQR,mode):
+
+    ##### Create Regular Expression to dectect pattern for Staff ID and Order number ####
+
+    ### Regex object for Staff ID ###
+    # Temporary for testing purpose not final
+    # Example : Staff ID  = 3 character (uppercase) follow by 5 digit  : PAC62578
+    staff_ID_regex = re.compile(r'''(
+                                        ([A-Z]{3})      # first 3 letter in uppercase
+                                        (\d{5})         # 5 digit
+                                        )''',re.VERBOSE)
+
+    ## Regex object for order number ##
+    # Temporary for testing purpose not final
+    # Example : Order number  = 3 charracter (uppercase) follow by - and 3 digit follow by any  5 character/digit    
+    #  ex: QA-375bx59ah
+
+    order_number_regex = re.compile(r'''(
+                                    ([A-Z]{2})      # first 2 letter
+                                    -               # - symbol
+                                    (\d{3})         # 3 digit
+                                    (.{5})          # any 5 character
+                                        )''',re.VERBOSE)
+
+    # select which QR to detect (Staff or order number)
+    # 2 mode 'staff' and 'order'
+    if (mode == 'staff'):
+        staff_mo = staff_ID_regex.search(inputQR)
+        if staff_mo != None:
+            print(staff_mo.group())
+            return True
+        else:
+            print('Invalid')
+            return False
+
+    elif (mode =='order'):
+        order_mo = order_number_regex.search(inputQR)
+        if order_mo != None:
+            print(order_mo.group())
+            return True
+        else:
+            print('Invalid')
+            return False
+    else:
+        print('Invalid mode')
+        return False
+
+
+    
+
+
 if __name__ == '__main__':
-    main()
+    #main() # Run script
+    inputQR = input('enter test: ')
+    QRregex(inputQR,mode='order')
     
     
     
