@@ -333,7 +333,7 @@ def cutVideo(file_inputname,videoData,durTarget,mode='cut'):
         numFrameExpect = FRAMERATE * durTarget
 
         if videoData['durationSec'] > durTarget:
-            filename = f'{filename}_cut.avi'
+            filename = f'{file_inputname}_cut.avi'
             #start_time = float((videoData['durationSec']/60) - 3.0)
             start_time = videoData['durationSec'] - 180
             print(start_time)
@@ -342,7 +342,11 @@ def cutVideo(file_inputname,videoData,durTarget,mode='cut'):
             print(end_time)
 
 
-            ffmpeg_extract_subclip(file_inputname,start_time, end_time, targetname=file_inputname)
+            ffmpeg_extract_subclip(file_inputname,start_time, end_time, targetname=filename)
+
+            os.unlink(file_inputname)
+            # rename to original fileman
+            shutil.move(filename,file_inputname)
             
             # Prototype code
 
