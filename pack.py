@@ -9,6 +9,8 @@ import json
 from pyzbar.pyzbar import decode
 import re
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+from moviepy.editor import *
+
 
 
 MONTH = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
@@ -111,7 +113,7 @@ def main():
             # Cut the duration of video
             print('Start cutting video...')
             cut_time_start = time.time()
-            cutVideo(file_inputname=edit_videoname,videoData=video_data,durTarget=180,mode='timeLapse')
+            cutVideo(file_inputname=edit_videoname,videoData=video_data,durTarget=180,mode='cut')
             cut_end_time = time.time()
             cut_time = cut_end_time - cut_time_start
             hours, rem = divmod(cut_time, 3600)
@@ -804,11 +806,28 @@ def QRregex(inputQR,mode):
         print('Invalid mode')
         return False
 
+def putText(video_input,text,duration):
+    # loading video dsa gfg intro video 
+    clip = VideoFileClip(video_input) 
+        
+    # Generate a text clip 
+    text_clip = TextClip(text, fontsize = 75, color = 'black') 
+        
+    # setting position of text and duration 
+    text_clip = txt_clip.set_pos('center').set_duration(duration) 
+        
+    # Overlay the text clip on the first video clip 
+    video = CompositeVideoClip([clip, text_clip]) 
+        
+    # showing video 
+    video.ipython_display(width = 280) 
+
 
 if __name__ == '__main__':
-    main() # Run script
+    #main() # Run script
     #inputQR = input('enter test: ')
     #QRregex(inputQR,mode='order')
+    putText('DH-12_19_Jun_2021.avi','Hello',180)
     
     
     
