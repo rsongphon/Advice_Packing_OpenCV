@@ -112,12 +112,23 @@ def main():
             vidData = getDurationFPS(fileInput=originalFilename)
 
             # Cut the duration of video
-            print('Processing video....')
+            print('Start cutting video...')
+            cut_time_start = time.time()
             vidCutName = cutVideo(fileInput=originalFilename,filename=filename,videoData=vidData,durTarget=180,mode='cut')
+            cut_end_time = time.time()
+            cut_time = cut_end_time - cut_time_start
+            hours, rem = divmod(cut_time, 3600)
+            minutes, seconds = divmod(rem, 60)
+            time_text = "{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds)
+            print('Cutting video Done...')
+            print('Cut time: ',end='')
+            print(time_text)
+            
 
+            
             # Add text and logo timestamp of finish process
             vidEditName = editVideo(fileInput=vidCutName,filename=filename,id=qrRead,logoDir=logoDir,timeFinish=finishTime)
-            print('Video editing done!')
+            
 
             ######## Video recording success (and editing too) ##########
 
@@ -352,6 +363,7 @@ def cutVideo(fileInput,filename,videoData,durTarget,mode='cut'):
             #end_time = float(videoData['durationSec']/60)
             end_time = videoData['durationSec']
             print(end_time)
+
 
             ffmpeg_extract_subclip(fileInput, start_time, end_time, targetname=filename)
             
