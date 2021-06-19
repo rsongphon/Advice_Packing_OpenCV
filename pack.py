@@ -111,7 +111,7 @@ def main():
             # Cut the duration of video
             print('Start cutting video...')
             cut_time_start = time.time()
-            cutVideo(file_inputname=edit_videoname,videoData=video_data,durTarget=180,mode='cut')
+            cutVideo(file_inputname=edit_videoname,videoData=video_data,durTarget=180,mode='timeLapse')
             cut_end_time = time.time()
             cut_time = cut_end_time - cut_time_start
             hours, rem = divmod(cut_time, 3600)
@@ -268,7 +268,7 @@ def recordingVdo(filename,qrRead,logo_directory):
 
     #capture.release()
     output.release()
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
 
     return edit_filename, ori_filename , finishTime
 
@@ -344,6 +344,7 @@ def cutVideo(file_inputname,videoData,durTarget,mode='cut'):
 
             ffmpeg_extract_subclip(file_inputname,start_time, end_time, targetname=filename)
 
+            # Delete the original file
             os.unlink(file_inputname)
             # rename to original fileman
             shutil.move(filename,file_inputname)
@@ -392,11 +393,11 @@ def cutVideo(file_inputname,videoData,durTarget,mode='cut'):
 
         if videoData['durationSec'] > durTarget:
             # Start Capture reading video
-            capture = cv2.VideoCapture(fileInput) 
+            capture = cv2.VideoCapture(file_inputname) 
             width = int(capture.get(3))
             height = int(capture.get(4))
             fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter
-            filename = f'{filename}_timelapse.avi'  # change file name here
+            filename = f'{file_inputname}_timelapse.avi'  # change file name here
             #output = cv2.VideoWriter('cut{}min.avi'.format(str(durTarget/60)),fourcc,fpsExpect, (width,height))
             output = cv2.VideoWriter(filename,fourcc,fpsExpect, (width,height))
 
@@ -408,10 +409,16 @@ def cutVideo(file_inputname,videoData,durTarget,mode='cut'):
 
             capture.release()
             output.release()
-            return filename 
+
+            # Delete the original file
+            os.unlink(file_inputname)
+            # rename to original fileman
+            shutil.move(filename,file_inputname)
+
+            return  
         
         else:
-            return fileInput # return the original videoname incase video did not change
+            return # return the original videoname in case video did not change
 
 def addLogo(inputFrame,imgLogo,logoScale=0.1): 
 
