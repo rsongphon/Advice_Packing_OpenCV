@@ -25,7 +25,7 @@ CAMERA = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
 
 FONT = cv2.FONT_HERSHEY_DUPLEX
 
-FRAMERATE = 30 # Frame rate must be match with the camera
+FRAMERATE = 17 # Frame rate must be match with the camera
 
 
 def main():
@@ -229,7 +229,24 @@ def recordingVdo(filename,qrRead,logo_directory):
 
     start_time = time.time() # Start time counter
 
-    while not finish:
+    # For using to delay qrcode to exit the recording progress
+    QR_counter_frame = 0
+    #duration_count = int(QR_counter_frame/FRAMERATE)
+    QR_exitframe = 60  # more frame = more time need for QR to detect before exiting
+    #duration_exit = 5  # 
+
+    
+
+    count_to_reset = 0
+    
+    # Loop to record video
+    # To exit video: show QR code to start countdown process
+    # Countdown is count every frame that detect QR code of the package
+    # When countdown reach the limit exit loop and stop recording 
+    # But! if QR code is absent for long period of time. Reset the counter to countdown to zero 
+    # So that when we scan again. It does not continue frome last contdown (Start from zero again)
+    # duration = frame_count/fps
+    while QR_counter_frame<QR_exitframe:
         isTrue, oriframe = CAMERA.read()
         output.write(oriframe)
         oriframe_copy = oriframe.copy()
@@ -237,8 +254,27 @@ def recordingVdo(filename,qrRead,logo_directory):
         edit_frame = editVideo(frameInput=oriframe_copy,id=qrRead,logoDir=logo_directory)
         output_edit.write(edit_frame)
 
-        show_frame , finish = scanToExit(frame_forshow,qrRead['order'])
+        show_frame , detect = scanToExit(frame_forshow,qrRead['order'])
 
+        if detect:
+            QR_counter_frame += 1
+            print(QR_counter_frame)
+            # show exit bar progress
+            percent_exit = (QR_counter_frame * 100) / QR_exitframe
+            show_frame = cv2.putText(show_frame,'exit',(int(show_frame.shape[1]*0.5),50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
+            show_frame = cv2.putText(show_frame,str(int(percent_exit)) + '%' ,(int(show_frame.shape[1]*0.5),100),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
+            count_to_reset = 0;
+            
+        # Reset Exit delay percentage when user not showing QRcode 
+        if not detect:
+            # start read time 
+            count_to_reset += 1
+            print(count_to_reset)
+        if count_to_reset > 30: # Adjust the accuracy here 
+            QR_counter_frame = 0
+            count_to_reset = 0
+
+        # show recording status
         if showText == True:
             show_frame = cv2.putText(show_frame,'Recording',(int(show_frame.shape[1]*0.75),50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
             count += 1
@@ -489,7 +525,7 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
 
     # add logo and background together
     finalImg = cv2.add(imgBg,logoFg)
-    cv2.imshow('roi3',finalImg)
+    #cv2.imshow('roi3',finalImg)
 
     # Modify the original , Specify the location!
     oriFrame[0:height,0:width] = finalImg
@@ -669,7 +705,7 @@ def scanToExit(frame,orderNo):
             rectButtom = (rect[0]+int(rect[2]*0.3),rect[1]+rect[3]+30)
             cv2.putText(frame,qrCode,rectOrigin,fontFace=FONT,fontScale=1,color=(255,0,255),thickness=2)
             cv2.putText(frame,'Order number',rectButtom,fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
-            return frame , True
+            return frame , True 
         else:
             #detect invalid number (not order number)
             points = np.array([code.polygon],np.int32)
@@ -681,8 +717,7 @@ def scanToExit(frame,orderNo):
             cv2.putText(frame,qrCode,rectOrigin,fontFace=FONT,fontScale=1,color=(0,0,255),thickness=2)
             cv2.putText(frame,'Invalid',rectButtom,fontFace=FONT,fontScale=1,color=(0,0,255),thickness=2)
             continue 
-
-    return frame , False
+    return frame , False 
 
 def recordAgain(QRinput):
     # Information of order number and staff ID from qr code
