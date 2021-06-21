@@ -231,11 +231,11 @@ def recordingVdo(filename,qrRead,logo_directory):
 
     # For using to delay qrcode to exit the recording progress
     QR_counter_frame = 0
-    #duration_count = int(QR_counter_frame/FRAMERATE)
-    QR_exitframe = 60  # more frame = more time need for QR to detect before exiting
-    #duration_exit = 5  # 
+    duration_count = 0 # in second
+    #QR_exitframe = 60  # more frame = more time need for QR to detect before exiting
 
-    
+    # CHANE DELAY TO SCAN EXIT HERE
+    duration_exit = 5  # in second 
 
     count_to_reset = 0
     
@@ -246,7 +246,7 @@ def recordingVdo(filename,qrRead,logo_directory):
     # But! if QR code is absent for long period of time. Reset the counter to countdown to zero 
     # So that when we scan again. It does not continue frome last contdown (Start from zero again)
     # duration = frame_count/fps
-    while QR_counter_frame<QR_exitframe:
+    while duration_count<duration_exit:
         isTrue, oriframe = CAMERA.read()
         output.write(oriframe)
         oriframe_copy = oriframe.copy()
@@ -258,12 +258,13 @@ def recordingVdo(filename,qrRead,logo_directory):
 
         if detect:
             QR_counter_frame += 1
-            print(QR_counter_frame)
+            duration_count = QR_counter_frame/FRAMERATE   # convert frame to duration in second
+            print(duration_count)
             # show exit bar progress
-            percent_exit = (QR_counter_frame * 100) / QR_exitframe
+            percent_exit = (duration_count * 100) / duration_exit
             show_frame = cv2.putText(show_frame,'exit',(int(show_frame.shape[1]*0.5),50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
             show_frame = cv2.putText(show_frame,str(int(percent_exit)) + '%' ,(int(show_frame.shape[1]*0.5),100),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
-            count_to_reset = 0;
+            count_to_reset = 0
             
         # Reset Exit delay percentage when user not showing QRcode 
         if not detect:
@@ -272,6 +273,7 @@ def recordingVdo(filename,qrRead,logo_directory):
             print(count_to_reset)
         if count_to_reset > 30: # Adjust the accuracy here 
             QR_counter_frame = 0
+            duration_count = 0
             count_to_reset = 0
 
         # show recording status
