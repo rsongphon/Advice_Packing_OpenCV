@@ -76,18 +76,24 @@ def main():
             if diffTime > OneMonth: # time in second 
                 os.unlink(absPath)
 
+    wait_time_start = time.time() # Start countdown time
+
     while True: # loop this forever
+
+        
+
         # recording status
         Record = False
 
         # Wait for QR code for staffID and order number to begin recording video
         try:
-            Record , staffID , orderNo = QRscan()
+            Record , staffID , orderNo = QRscan(start_time=wait_time_start)
 
         # Or manually exit here (check condition in QR scan function)
         except TypeError: # Return None type from QRscan function raise TypeError
             print('Exiting program')
             break
+
 
         # Information of order number and staff ID from qr code
         qrRead = {'staff': staffID ,'order': orderNo }
@@ -173,6 +179,9 @@ def main():
             ######## Ask thse same staff if they want to packing more ##########
 
             Record , qrRead = recordAgain(QRinput = qrRead)
+            
+            wait_time_start = time.time() # Reset countdown time
+
             # exit = input("Exit(y/n)")
             # print(exit.upper())
             # if exit.upper() == 'Y':
@@ -285,7 +294,7 @@ def editVideo(frameInput,id,logoDir):
     text_staff = 'Staff ID: '+id['staff']
     text_order = 'Order No: '+id['order']
     current_time = getCurrentTime()
-    text_time = 'Finish Time {}:{} {} {} {}'.format(current_time['hour'],current_time['min'],current_time['day'],current_time['monthName'],current_time['year'])
+    text_time = 'Time : Date {}:{} {} {} {}'.format(current_time['hour'],current_time['min'],current_time['day'],current_time['monthName'],current_time['year'])
 
     cv2.putText(img = frameInput,text=text_staff,org=textLocation_staff, 
                 fontFace=FONT, fontScale=0.5, color=(0, 255, 150), thickness=1, lineType =cv2.LINE_AA)
@@ -326,6 +335,7 @@ def cutVideo(file_inputname,videoData,durTarget,mode='cut'):
     # 'timeLapse' for speed up the video in desire duration
 
     if mode=='cut':
+        print('Selecting mode.... Cut')
         # if duration more than we want (durTarget)
 
         # !!Count in second!!
@@ -389,6 +399,7 @@ def cutVideo(file_inputname,videoData,durTarget,mode='cut'):
             return 
 
     elif mode =='timeLapse':
+        print('Selecting mode.... Timelapse')
         # !!adjust fps to speedup the video!!
 
         # duration = frame_count/fps >>>> frame_count = fps*duration >>>>> fps = frame_count / duration
@@ -464,18 +475,12 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
 
     return oriFrame
 
-def QRscan(staffStatus=False,orderStatus=False):
+def QRscan(start_time,staffStatus=False,orderStatus=False):
     ##### This is IDLE state (starting point) that alway return to  #####
     ## Return video capture object class from this function ##
 
     #capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
 
-    # Regrex to identify  staff number and ordernumber
-    # Staff ID format: Ex 1110
-    staffPattern = '1110'
-    
-    # Order number format : ex DSG
-    orderPattern = 'DSG'
 
     delay = 0
     #FRAMERATE = 17
@@ -483,10 +488,19 @@ def QRscan(staffStatus=False,orderStatus=False):
     while True:
         ret,frame = CAMERA.read()
         #font = cv2.FONT_HERSHEY_SIMPLEX
+        recent_time = time.time() # Get current time
+        time_gap = recent_time - start_time 
+        exit_time = 60 * 1  # Exit after 60 * (miniute)
+        print(time_gap)
 
         # Ask for staff ID first
         if not staffStatus:
             cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+
+            if time_gap > exit_time:  # 
+                print('No activity. Exiting program')
+                break
+
             try:
                 staffStatus , staffID = decodeStaffID(frame) # if found ID return True status
                 #print(staffID)
