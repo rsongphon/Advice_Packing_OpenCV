@@ -285,6 +285,17 @@ def recordingVdo(filename,qrRead,logo_directory):
 
 def editVideo(frameInput,id,logoDir):
 
+    # # Convert to gray scale image (use for thresholding)
+    # gray_frame = cv2.cvtColor(frameInput,cv2.COLOR_BGR2GRAY)
+    # cv2.imshow('gray',gray_frame)
+    # # Threshholding image to identify dark area
+    # thresholding ,thresh_image = cv2.threshold(gray_frame,150,255,cv2.THRESH_BINARY)
+    # cv2.imshow('Thresh',thresh_image)
+
+    # # Pixel black > text white
+
+    # # Pixel white > text black
+
     # Put the text in image 
     #font = cv2.FONT_HERSHEY_SIMPLEX # adjust font type
     textLocation_staff = (0,frameInput.shape[0]-10)  # adjust the minus value to move the row
@@ -297,10 +308,17 @@ def editVideo(frameInput,id,logoDir):
     text_time = 'Time : Date {}:{} {} {} {}'.format(current_time['hour'],current_time['min'],current_time['day'],current_time['monthName'],current_time['year'])
 
     cv2.putText(img = frameInput,text=text_staff,org=textLocation_staff, 
-                fontFace=FONT, fontScale=0.5, color=(0, 255, 150), thickness=1, lineType =cv2.LINE_AA)
+                fontFace=FONT, fontScale=0.5, color=(255, 255, 0), thickness=4, lineType =cv2.LINE_AA)
+    cv2.putText(img = frameInput,text=text_staff,org=textLocation_staff, 
+                fontFace=FONT, fontScale=0.5, color=(0, 0, 0), thickness=1, lineType =cv2.LINE_AA)
+
     cv2.putText(img = frameInput,text=text_order,org=textLocation_order,
-                fontFace=FONT, fontScale=0.5, color=(0, 255, 150), thickness= 1, lineType=cv2.LINE_AA)
-    cv2.putText(img = frameInput,text=text_time ,org=textLocation_Time,fontFace=FONT, fontScale=0.5, color=(255, 245, 0), thickness= 1, lineType=cv2.LINE_AA)
+                fontFace=FONT, fontScale=0.5, color=(255, 255, 0), thickness= 4, lineType=cv2.LINE_AA)
+    cv2.putText(img = frameInput,text=text_order,org=textLocation_order,
+                fontFace=FONT, fontScale=0.5, color=(0, 0, 0), thickness= 1, lineType=cv2.LINE_AA)
+
+    cv2.putText(img = frameInput,text=text_time ,org=textLocation_Time,fontFace=FONT, fontScale=0.5, color=(255, 255, 0), thickness= 4, lineType=cv2.LINE_AA)
+    cv2.putText(img = frameInput,text=text_time ,org=textLocation_Time,fontFace=FONT, fontScale=0.5, color=(0, 0, 0), thickness= 1, lineType=cv2.LINE_AA)
     
     #Put logo in the image
     logoAbsPath = os.path.join(logoDir,'advice.jpg') # Change logo here
@@ -490,8 +508,8 @@ def QRscan(start_time,staffStatus=False,orderStatus=False):
         #font = cv2.FONT_HERSHEY_SIMPLEX
         recent_time = time.time() # Get current time
         time_gap = recent_time - start_time 
-        exit_time = 60 * 1  # Exit after 60 * (miniute)
-        print(time_gap)
+        exit_time = 60 * 5  # Exit after 60 * (miniute)
+        #print(time_gap)
 
         # Ask for staff ID first
         if not staffStatus:
