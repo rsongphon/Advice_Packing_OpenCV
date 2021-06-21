@@ -101,6 +101,8 @@ To make a system to record warehouse packing procedure by using Raspberry Pi and
 - Check if there are 2 valid QR code (ID and Order number) entering the system
     - Start capturing the video
     - After user finish the process. Stop video by sending signal (push button) (or Scan QR code again)
+    - If using Scan QR system. There must be delay after detect QR code (QR code must be in the frame for the set period of time)
+      to prevent end recording by accident 
     - Get the information of Date,time,User ID, Order no
     - Cut the video into last 3 minute duration
     - Editing and apply information overlay to the video

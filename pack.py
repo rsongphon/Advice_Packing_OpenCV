@@ -257,6 +257,7 @@ def recordingVdo(filename,qrRead,logo_directory):
 
         show_frame , detect = scanToExit(frame_forshow,qrRead['order'])
 
+        # When detect QR code start counting frame and convert to second (countdown)
         if detect:
             QR_counter_frame += 1
             QR_detect_duration = QR_counter_frame/FRAMERATE   # convert frame to duration in second
@@ -265,15 +266,16 @@ def recordingVdo(filename,qrRead,logo_directory):
             percent_exit = (QR_detect_duration * 100) / duration_exit_limit
             show_frame = cv2.putText(show_frame,'exit',(int(show_frame.shape[1]*0.5),50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
             show_frame = cv2.putText(show_frame,str(int(percent_exit)) + '%' ,(int(show_frame.shape[1]*0.5),100),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
+            # If there is some QR code frame detect. Must not reset the counter 
             count_to_reset = 0
             
-        # Reset Exit delay percentage when user not showing QRcode 
+        # IF QR code is absent from frame start counting time to reset countdown
         if not detect:
             # start read time 
             count_to_reset += 1
             QR_absent_duration = count_to_reset/FRAMERATE
             print(QR_absent_duration)
-        # If QR code
+        # If QR code absent from frame more than set time with no detecton whatsoever. reset counter (countdown)
         if QR_absent_duration > QR_absent_limit: # Adjust the accuracy here : less value = more error : more value 
             QR_counter_frame = 0
             count_to_reset = 0
