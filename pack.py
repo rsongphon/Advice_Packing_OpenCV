@@ -280,17 +280,18 @@ def editVideo(frameInput,id,logoDir):
     #font = cv2.FONT_HERSHEY_SIMPLEX # adjust font type
     textLocation_staff = (0,frameInput.shape[0]-10)  # adjust the minus value to move the row
     textLocation_order = (0,frameInput.shape[0]-30)  # adjust the minus value to move the row
-    textLocation_finishTime = (0,frameInput.shape[0]-50)
+    textLocation_Time = (0,frameInput.shape[0]-50)
 
     text_staff = 'Staff ID: '+id['staff']
     text_order = 'Order No: '+id['order']
-    #text_finishTime = 'Finish Time {}:{} {} {} {}'.format(timeFinish['hour'],timeFinish['min'],timeFinish['day'],timeFinish['monthName'],timeFinish['year'])
+    current_time = getCurrentTime()
+    text_time = 'Finish Time {}:{} {} {} {}'.format(current_time['hour'],current_time['min'],current_time['day'],current_time['monthName'],current_time['year'])
 
     cv2.putText(img = frameInput,text=text_staff,org=textLocation_staff, 
                 fontFace=FONT, fontScale=0.5, color=(0, 255, 150), thickness=1, lineType =cv2.LINE_AA)
     cv2.putText(img = frameInput,text=text_order,org=textLocation_order,
                 fontFace=FONT, fontScale=0.5, color=(0, 255, 150), thickness= 1, lineType=cv2.LINE_AA)
-    #cv2.putText(img = frameInput,text=text_finishTime ,org=textLocation_finishTime,fontFace=FONT, fontScale=0.5, color=(255, 245, 0), thickness= 1, lineType=cv2.LINE_AA)
+    cv2.putText(img = frameInput,text=text_time ,org=textLocation_Time,fontFace=FONT, fontScale=0.5, color=(255, 245, 0), thickness= 1, lineType=cv2.LINE_AA)
     
     #Put logo in the image
     logoAbsPath = os.path.join(logoDir,'advice.jpg') # Change logo here
@@ -824,10 +825,10 @@ def putText(video_input,text,duration):
 
 
 if __name__ == '__main__':
-    #main() # Run script
+    main() # Run script
     #inputQR = input('enter test: ')
     #QRregex(inputQR,mode='order')
-    putText('DH-12_19_Jun_2021.avi','Hello',180)
+    #putText('DH-12_19_Jun_2021.avi','Hello',180)
     
     
     
