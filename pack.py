@@ -324,7 +324,7 @@ def editVideo(frameInput,id,logoDir):
     logoAbsPath = os.path.join(logoDir,'advice.jpg') # Change logo here
     logo = cv2.imread(logoAbsPath)
     
-    frameInput = addLogo(frameInput,logo,logoScale=0.1)
+    frameInput = addLogo(frameInput,logo,logoScale=0.2)
 
     return frameInput
 
@@ -481,12 +481,15 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
 
     # black-out the area of logo in ROI
     imgBg = cv2.bitwise_and(roi, roi, mask=maskInv)
+    #cv2.imshow('roi',imgBg)
 
     # Take only region of logo from logo image.
     logoFg = cv2.bitwise_and(logoResize, logoResize, mask=mask)
+    #cv2.imshow('roi2',logoFg)
 
     # add logo and background together
     finalImg = cv2.add(imgBg,logoFg)
+    cv2.imshow('roi3',finalImg)
 
     # Modify the original , Specify the location!
     oriFrame[0:height,0:width] = finalImg
