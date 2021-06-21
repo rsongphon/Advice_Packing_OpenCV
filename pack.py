@@ -8,6 +8,9 @@ import base64
 import json
 from pyzbar.pyzbar import decode
 import re
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+from moviepy.editor import *
+
 
 
 MONTH = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
@@ -101,23 +104,25 @@ def main():
             ######## Start Recording Video ##########
     
             # Return file name and finish time to use to label video filename
-            recVid , finishTime = recordingVdo(filename = filename,orderNo=qrRead['order'])
-
-            
-            originalFilename = recVid + '_original.avi'
+            edit_videoname , original_videoname , finishTime = recordingVdo(filename = filename,qrRead=qrRead,logo_directory = logoDir)
 
             # Cut Footage
             # Get FPS data duration of the video
-            vidData = getDurationFPS(fileInput=originalFilename)
+            video_data = getDurationFPS(fileInput=edit_videoname)
 
             # Cut the duration of video
-            print('Processing video....')
-            vidCutName = cutVideo(fileInput=originalFilename,filename=filename,videoData=vidData,durTarget=180,mode='cut')
-
-            # Add text and logo timestamp of finish process
-            vidEditName = editVideo(fileInput=vidCutName,filename=filename,id=qrRead,logoDir=logoDir,timeFinish=finishTime)
-            print('Video editing done!')
-
+            print('Start cutting video...')
+            cut_time_start = time.time()
+            cutVideo(file_inputname=edit_videoname,videoData=video_data,durTarget=180,mode='cut')
+            cut_end_time = time.time()
+            cut_time = cut_end_time - cut_time_start
+            hours, rem = divmod(cut_time, 3600)
+            minutes, seconds = divmod(rem, 60)
+            time_text = "{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds)
+            print('Cutting video Done...')
+            print('Cut time: ',end='')
+            print(time_text)
+            
             ######## Video recording success (and editing too) ##########
 
             Record = False
@@ -126,20 +131,15 @@ def main():
 
             # Move final editing video file to valid folder and delete the original
             # Current directory is the folder that run this script
-            finishFilePath = os.path.join(parentDir,vidEditName)
-            fileStorePath = os.path.join(currentMontVdo,vidEditName) # !! This is the location of the final video output
+            finishFilePath = os.path.join(parentDir,edit_videoname)
+            fileStorePath = os.path.join(currentMontVdo,edit_videoname) # !! This is the location of the final video output
             shutil.copy(finishFilePath,fileStorePath)
 
             #delete original video
-            filePathOri = os.path.join(parentDir,originalFilename)
-            cutPathOri = os.path.join(parentDir,vidCutName)
-
-            print(f'Deleting...{originalFilename}')
-            os.unlink(filePathOri)
-            if vidCutName != originalFilename:
-                print(f'Deleting...{vidCutName}')
-                os.unlink(cutPathOri)
-            print(f'Deleting....{vidEditName}')
+            filepath_original = os.path.join(parentDir,original_videoname)
+            print(f'Deleting backup...{original_videoname}')
+            os.unlink(filepath_original)
+            print(f'Deleting backup....{edit_videoname}')
             os.unlink(finishFilePath)
 
             ######## Finish moving and deleting file ##########
@@ -155,7 +155,7 @@ def main():
             data['videoData'] = base64.encodebytes(videoData).decode('utf-8')
 
             # Strore other information
-            data['videoName'] , data['fileType'] = os.path.splitext(vidEditName) # Extract file name and type
+            data['videoName'] , data['fileType'] = os.path.splitext(edit_videoname) # Extract file name and type
             data['fileSize'] = os.path.getsize(fileStorePath)
             data['dateCreate'] = time.ctime(os.path.getctime(fileStorePath))
             data['staffID'] = qrRead['staff']
@@ -193,7 +193,7 @@ def getCurrentTime():
     currentTime['min'] = t[4]
     return currentTime
 
-def recordingVdo(filename,orderNo):
+def recordingVdo(filename,qrRead,logo_directory):
     # Start Capture raw footage
     #capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
     width = int(CAMERA.get(3))
@@ -206,21 +206,32 @@ def recordingVdo(filename,orderNo):
     count = 0 # for flickering text
     showText = True
     numFrame = 10 # number of frame for flickering text
+
+    # Backup file 
+    ori_filename = filename+'_original.avi'
+
+    # filename foe use in the next process
+
+    edit_filename = filename+'.avi'
     
-    
-    # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
-    output = cv2.VideoWriter(filename+'_original.avi',fourcc,FRAMERATE,(width,height))
+    # Define the codec and create VideoWriter object.
+    output = cv2.VideoWriter(ori_filename,fourcc,FRAMERATE,(width,height))
+    output_edit = cv2.VideoWriter(edit_filename,fourcc,FRAMERATE,(width,height))
 
     start_time = time.time() # Start time counter
 
     while not finish:
         isTrue, oriframe = CAMERA.read()
         output.write(oriframe)
+        oriframe_copy = oriframe.copy()
+        frame_forshow = oriframe.copy()
+        edit_frame = editVideo(frameInput=oriframe_copy,id=qrRead,logoDir=logo_directory)
+        output_edit.write(edit_frame)
 
-        editFrame , finish = scanToExit(oriframe,orderNo)
+        show_frame , finish = scanToExit(frame_forshow,qrRead['order'])
 
         if showText == True:
-            editFrame = cv2.putText(editFrame,'Recording',(int(editFrame.shape[1]*0.75),50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
+            show_frame = cv2.putText(show_frame,'Recording',(int(show_frame.shape[1]*0.75),50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
             count += 1
         elif showText == False:
             count += 1
@@ -236,9 +247,9 @@ def recordingVdo(filename,orderNo):
         hours, rem = divmod(current_time-start_time, 3600)
         minutes, seconds = divmod(rem, 60)
         time_text = "{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds)
-        editFrame = cv2.putText(editFrame,time_text,(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
+        show_frame = cv2.putText(show_frame,time_text,(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
 
-        cv2.imshow(WINDOW_NAME,editFrame)
+        cv2.imshow(WINDOW_NAME,show_frame)
         cv2.waitKey(INTERFRAME_WAIT_MS)
 
     
@@ -250,7 +261,7 @@ def recordingVdo(filename,orderNo):
 
     for frame in range(displayFrame):
         isTrue, display = CAMERA.read()
-        display , _ = scanToExit(display,orderNo) # still display order no.
+        display , _ = scanToExit(display,qrRead['order']) # still display order no.
         cv2.putText(display,'Finished!',(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
         cv2.putText(display,'Stop recording'+'.'*int(frame/FRAMERATE),(0,80),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
         cv2.imshow(WINDOW_NAME,display)
@@ -259,55 +270,36 @@ def recordingVdo(filename,orderNo):
 
     #capture.release()
     output.release()
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
 
-    return filename, finishTime
+    return edit_filename, ori_filename , finishTime
 
-def editVideo(fileInput,filename,id,logoDir,timeFinish):
+def editVideo(frameInput,id,logoDir):
 
-    videoName = filename+'.avi'
-    # Start Capture raw footage
-    capture = cv2.VideoCapture(fileInput) 
-    width = int(capture.get(3))
-    height = int(capture.get(4))
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter 
-    #FRAMERATE = 17 # Same as original video
-    output = cv2.VideoWriter(videoName,fourcc,FRAMERATE, (width,height))
+    # Put the text in image 
+    #font = cv2.FONT_HERSHEY_SIMPLEX # adjust font type
+    textLocation_staff = (0,frameInput.shape[0]-10)  # adjust the minus value to move the row
+    textLocation_order = (0,frameInput.shape[0]-30)  # adjust the minus value to move the row
+    textLocation_Time = (0,frameInput.shape[0]-50)
+
+    text_staff = 'Staff ID: '+id['staff']
+    text_order = 'Order No: '+id['order']
+    current_time = getCurrentTime()
+    text_time = 'Finish Time {}:{} {} {} {}'.format(current_time['hour'],current_time['min'],current_time['day'],current_time['monthName'],current_time['year'])
+
+    cv2.putText(img = frameInput,text=text_staff,org=textLocation_staff, 
+                fontFace=FONT, fontScale=0.5, color=(0, 255, 150), thickness=1, lineType =cv2.LINE_AA)
+    cv2.putText(img = frameInput,text=text_order,org=textLocation_order,
+                fontFace=FONT, fontScale=0.5, color=(0, 255, 150), thickness= 1, lineType=cv2.LINE_AA)
+    cv2.putText(img = frameInput,text=text_time ,org=textLocation_Time,fontFace=FONT, fontScale=0.5, color=(255, 245, 0), thickness= 1, lineType=cv2.LINE_AA)
     
-    #Reading one frame and move pointer to the next frame
-    ret, frame = capture.read() # start reading
+    #Put logo in the image
+    logoAbsPath = os.path.join(logoDir,'advice.jpg') # Change logo here
+    logo = cv2.imread(logoAbsPath)
+    
+    frameInput = addLogo(frameInput,logo,logoScale=0.1)
 
-    while ret: # ret return True if the frame reading is success. 
-        #waitScreen(mode ='edit')
-        # Put the text in image 
-        #font = cv2.FONT_HERSHEY_SIMPLEX # adjust font type
-        textLocation_staff = (0,frame.shape[0]-10)  # adjust the minus value to move the row
-        textLocation_order = (0,frame.shape[0]-30)  # adjust the minus value to move the row
-        textLocation_finishTime = (0,frame.shape[0]-50)
-
-        text_staff = 'Staff ID: '+id['staff']
-        text_order = 'Order No: '+id['order']
-        text_finishTime = 'Finish Time {}:{} {} {} {}'.format(timeFinish['hour'],timeFinish['min'],
-                                                        timeFinish['day'],timeFinish['monthName'],timeFinish['year'])
-
-        cv2.putText(img = frame,text=text_staff,org=textLocation_staff, 
-                    fontFace=FONT, fontScale=0.5, color=(0, 255, 150), thickness=1, lineType =cv2.LINE_AA)
-        cv2.putText(img = frame,text=text_order,org=textLocation_order,
-                    fontFace=FONT, fontScale=0.5, color=(0, 255, 150), thickness= 1, lineType=cv2.LINE_AA)
-        cv2.putText(img = frame,text=text_finishTime ,org=textLocation_finishTime,fontFace=FONT, fontScale=0.5, color=(255, 245, 0), thickness= 1, lineType=cv2.LINE_AA)
-        
-        #Put logo in the image
-        logoAbsPath = os.path.join(logoDir,'advice.jpg') # Change logo here
-        logo = cv2.imread(logoAbsPath)
-        
-        frame = addLogo(frame,logo,logoScale=0.1)
-
-        output.write(frame)
-        ret, frame = capture.read() # next frame
-
-    capture.release()
-    output.release()
-    return videoName
+    return frameInput
 
 def getDurationFPS(fileInput):
     capture = cv2.VideoCapture(fileInput)
@@ -328,7 +320,7 @@ def getDurationFPS(fileInput):
 
     return videoData
 
-def cutVideo(fileInput,filename,videoData,durTarget,mode='cut'):
+def cutVideo(file_inputname,videoData,durTarget,mode='cut'):
     # Choose Between 2 mode 
     # 'cut' for cuting the footage into last desire duration
     # 'timeLapse' for speed up the video in desire duration
@@ -344,40 +336,57 @@ def cutVideo(fileInput,filename,videoData,durTarget,mode='cut'):
         numFrameExpect = FRAMERATE * durTarget
 
         if videoData['durationSec'] > durTarget:
-            print('Video lenght is {} minute . More than {} minute'.format(str(int(videoData['durationSec']/60)),str(int(durTarget/60))))
-            # Subtract actual video frame with expect frame to get checkpoint of the starting frame (last batch of the video)
-            startPoint = videoData['frameCount'] - numFrameExpect
-            #print(startPoint)
+            filename = f'{file_inputname}_cut.avi'
+            #start_time = float((videoData['durationSec']/60) - 3.0)
+            start_time = videoData['durationSec'] - 180
+            print(start_time)
+            #end_time = float(videoData['durationSec']/60)
+            end_time = videoData['durationSec']
+            print(end_time)
 
-            # Start Capture reading video
-            capture = cv2.VideoCapture(fileInput) 
-            width = int(capture.get(3))
-            height = int(capture.get(4))
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter 
-            #FRAMERATE = 17 # Same as original video
-            filename = f'{filename}_cut.avi'  # change file name here
-            #output = cv2.VideoWriter('cut{}min.avi'.format(str(durTarget/60)),fourcc,FRAMERATE, (width,height))
-            output = cv2.VideoWriter(filename,fourcc,FRAMERATE, (width,height))
 
-            ret, frame = capture.read() # start reading
-            countFrame = 1 # first frame
+            ffmpeg_extract_subclip(file_inputname,start_time, end_time, targetname=filename)
 
-            while ret:
-                if countFrame<startPoint:
-                    #waitScreen()
-                    pass
-                else:
-                    #waitScreen()
-                    output.write(frame)
-                ret, frame = capture.read()
-                countFrame += 1     
+            # Delete the original file
+            os.unlink(file_inputname)
+            # rename to original fileman
+            shutil.move(filename,file_inputname)
             
-            capture.release()
-            output.release()
+            # Prototype code
 
-            return filename
+            # print('Video lenght is {} minute . More than {} minute'.format(str(int(videoData['durationSec']/60)),str(int(durTarget/60))))
+            # # Subtract actual video frame with expect frame to get checkpoint of the starting frame (last batch of the video)
+            # startPoint = videoData['frameCount'] - numFrameExpect
+            # #print(startPoint)
+
+            # # Start Capture reading video
+            # capture = cv2.VideoCapture(fileInput) 
+            # width = int(capture.get(3))
+            # height = int(capture.get(4))
+            # fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter 
+            # #FRAMERATE = 17 # Same as original video
+            # filename = f'{filename}_cut.avi'  # change file name here
+            # #output = cv2.VideoWriter('cut{}min.avi'.format(str(durTarget/60)),fourcc,FRAMERATE, (width,height))
+            # output = cv2.VideoWriter(filename,fourcc,FRAMERATE, (width,height))
+
+            # ret, frame = capture.read() # start reading
+            # countFrame = 1 # first frame
+
+            # while ret:
+            #     if countFrame<startPoint:
+            #         #waitScreen()
+            #         pass
+            #     else:
+            #         #waitScreen()
+            #         output.write(frame)
+            #     ret, frame = capture.read()
+            #     countFrame += 1     
+            
+            # capture.release()
+            # output.release()
+            return 
         else:
-            return fileInput # return the original videoname incase video did not change
+            return 
 
     elif mode =='timeLapse':
         # !!adjust fps to speedup the video!!
@@ -387,11 +396,11 @@ def cutVideo(fileInput,filename,videoData,durTarget,mode='cut'):
 
         if videoData['durationSec'] > durTarget:
             # Start Capture reading video
-            capture = cv2.VideoCapture(fileInput) 
+            capture = cv2.VideoCapture(file_inputname) 
             width = int(capture.get(3))
             height = int(capture.get(4))
             fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the codec and create VideoWriter
-            filename = f'{filename}_timelapse.avi'  # change file name here
+            filename = f'{file_inputname}_timelapse.avi'  # change file name here
             #output = cv2.VideoWriter('cut{}min.avi'.format(str(durTarget/60)),fourcc,fpsExpect, (width,height))
             output = cv2.VideoWriter(filename,fourcc,fpsExpect, (width,height))
 
@@ -403,10 +412,16 @@ def cutVideo(fileInput,filename,videoData,durTarget,mode='cut'):
 
             capture.release()
             output.release()
-            return filename 
+
+            # Delete the original file
+            os.unlink(file_inputname)
+            # rename to original fileman
+            shutil.move(filename,file_inputname)
+
+            return  
         
         else:
-            return fileInput # return the original videoname incase video did not change
+            return # return the original videoname in case video did not change
 
 def addLogo(inputFrame,imgLogo,logoScale=0.1): 
 
@@ -792,11 +807,28 @@ def QRregex(inputQR,mode):
         print('Invalid mode')
         return False
 
+def putText(video_input,text,duration):
+    # loading video dsa gfg intro video 
+    clip = VideoFileClip(video_input) 
+        
+    # Generate a text clip 
+    text_clip = TextClip(text, fontsize = 75, color = 'black') 
+        
+    # setting position of text and duration 
+    text_clip = txt_clip.set_pos('center').set_duration(duration) 
+        
+    # Overlay the text clip on the first video clip 
+    video = CompositeVideoClip([clip, text_clip]) 
+        
+    # showing video 
+    video.ipython_display(width = 280) 
+
 
 if __name__ == '__main__':
     main() # Run script
     #inputQR = input('enter test: ')
     #QRregex(inputQR,mode='order')
+    #putText('DH-12_19_Jun_2021.avi','Hello',180)
     
     
     
