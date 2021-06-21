@@ -23,7 +23,7 @@ CAMERA = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
 #cv2.namedWindow(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN)
 #cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-FONT = cv2.FONT_HERSHEY_SIMPLEX
+FONT = cv2.FONT_HERSHEY_DUPLEX
 
 FRAMERATE = 30 # Frame rate must be match with the camera
 
