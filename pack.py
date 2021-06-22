@@ -509,25 +509,6 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
     oriFrame = inputFrame
     logo = imgLogo
 
-    #  # extract only bgr channels
-    # bgr = logo[:, :, 0:3]
-
-    # # extract alpha channel
-    # a = logo[:, :, 3]
-
-    # # blur alpha channel
-    # ab = cv2.GaussianBlur(a, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
-
-    # # stretch so that 255 -> 255 and 127.5 -> 0
-    # aa = skimage.exposure.rescale_intensity(ab, in_range=(127.5,255), out_range=(0,255))
-
-    # # replace alpha channel in input with new alpha channel
-    # out = logo.copy()
-    # out[:, :, 3] = aa
-
-    # cv2.imshow('out',out)
-
-
     logoResize = rescaleFrame(logo,logoScale) # resize
     
 
@@ -538,7 +519,7 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
 
     # Create a mask of logo and create its inverse mask also
     logo2gray = cv2.cvtColor(logoResize, cv2.COLOR_BGR2GRAY)
-    #logo2gray = cv2.medianBlur(logo2gray,13)
+
     ret, mask = cv2.threshold(logo2gray, 10, 255, cv2.THRESH_BINARY)
     maskInv = cv2.bitwise_not(mask)
 
@@ -558,8 +539,10 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
 
     # add logo and background together
     finalImg = cv2.add(imgBg,logoFg)
-    finalImg = cv2.medianBlur(finalImg,3)
-    cv2.imshow('roi3',finalImg)
+    #finalImg = cv2.GaussianBlur(finalImg,(5,5),0)
+    cv2.imshow('Before blur',finalImg)
+    finalImg = cv2.medianBlur(finalImg,1)
+    cv2.imshow('after blur',finalImg)
 
     # Modify the original , Specify the location!
     oriFrame[0:height,0:width] = finalImg
