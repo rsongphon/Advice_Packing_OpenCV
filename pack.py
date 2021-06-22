@@ -10,7 +10,7 @@ from pyzbar.pyzbar import decode
 import re
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from moviepy.editor import *
-
+import skimage.exposure
 
 
 MONTH = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
@@ -25,7 +25,7 @@ CAMERA = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
 
 FONT = cv2.FONT_HERSHEY_DUPLEX
 
-FRAMERATE = 17 # Frame rate must be match with the camera
+FRAMERATE = 30 # Frame rate must be match with the camera
 
 
 def main():
@@ -261,7 +261,7 @@ def recordingVdo(filename,qrRead,logo_directory):
         if detect:
             QR_counter_frame += 1
             QR_detect_duration = QR_counter_frame/FRAMERATE   # convert frame to duration in second
-            print(QR_detect_duration)
+            #print(QR_detect_duration)
             # show exit bar progress
             percent_exit = (QR_detect_duration * 100) / duration_exit_limit
             show_frame = cv2.putText(show_frame,'exit',(int(show_frame.shape[1]*0.5),50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
@@ -274,7 +274,7 @@ def recordingVdo(filename,qrRead,logo_directory):
             # start read time 
             count_to_reset += 1
             QR_absent_duration = count_to_reset/FRAMERATE
-            print(QR_absent_duration)
+            #print(QR_absent_duration)
         # If QR code absent from frame more than set time with no detecton whatsoever. reset counter (countdown)
         if QR_absent_duration > QR_absent_limit: # Adjust the accuracy here : less value = more error : more value 
             QR_counter_frame = 0
@@ -363,7 +363,7 @@ def editVideo(frameInput,id,logoDir):
     cv2.putText(img = frameInput,text=text_time ,org=textLocation_Time,fontFace=FONT, fontScale=0.5, color=(0, 0, 0), thickness= 1, lineType=cv2.LINE_AA)
     
     #Put logo in the image
-    logoAbsPath = os.path.join(logoDir,'advice.jpg') # Change logo here
+    logoAbsPath = os.path.join(logoDir,'advice-logo.jpg') # Change logo here
     logo = cv2.imread(logoAbsPath)
     
     frameInput = addLogo(frameInput,logo,logoScale=0.2)
@@ -509,7 +509,27 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
     oriFrame = inputFrame
     logo = imgLogo
 
+    #  # extract only bgr channels
+    # bgr = logo[:, :, 0:3]
+
+    # # extract alpha channel
+    # a = logo[:, :, 3]
+
+    # # blur alpha channel
+    # ab = cv2.GaussianBlur(a, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
+
+    # # stretch so that 255 -> 255 and 127.5 -> 0
+    # aa = skimage.exposure.rescale_intensity(ab, in_range=(127.5,255), out_range=(0,255))
+
+    # # replace alpha channel in input with new alpha channel
+    # out = logo.copy()
+    # out[:, :, 3] = aa
+
+    # cv2.imshow('out',out)
+
+
     logoResize = rescaleFrame(logo,logoScale) # resize
+    
 
     height,width,channels = logoResize.shape # get access to the dimension of the logo
 
@@ -518,8 +538,15 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
 
     # Create a mask of logo and create its inverse mask also
     logo2gray = cv2.cvtColor(logoResize, cv2.COLOR_BGR2GRAY)
+    #logo2gray = cv2.medianBlur(logo2gray,13)
     ret, mask = cv2.threshold(logo2gray, 10, 255, cv2.THRESH_BINARY)
     maskInv = cv2.bitwise_not(mask)
+
+    #mask = cv2.medianBlur(mask,13)
+    cv2.imshow('mask',mask)
+
+    #maskInv = cv2.medianBlur(maskInv,13)
+    cv2.imshow('maskINV',maskInv)
 
     # black-out the area of logo in ROI
     imgBg = cv2.bitwise_and(roi, roi, mask=maskInv)
@@ -531,11 +558,13 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
 
     # add logo and background together
     finalImg = cv2.add(imgBg,logoFg)
-    #cv2.imshow('roi3',finalImg)
+    finalImg = cv2.medianBlur(finalImg,3)
+    cv2.imshow('roi3',finalImg)
 
     # Modify the original , Specify the location!
     oriFrame[0:height,0:width] = finalImg
-
+    
+    
     return oriFrame
 
 def QRscan(start_time,staffStatus=False,orderStatus=False):
@@ -884,6 +913,7 @@ def QRregex(inputQR,mode):
         return False
 
 def putText(video_input,text,duration):
+
     # loading video dsa gfg intro video 
     clip = VideoFileClip(video_input) 
         
@@ -899,12 +929,48 @@ def putText(video_input,text,duration):
     # showing video 
     video.ipython_display(width = 280) 
 
+def test_blur():
+        # load image with alpha channel
+    img = cv2.imread('C:/Users/NB/Documents/GitHub/Advice_Packing_OpenCV/logo/advice-logo.jpg', cv2.IMREAD_UNCHANGED)
+
+    # extract only bgr channels
+    bgr = img[:, :, 0:3]
+
+    # extract alpha channel
+    a = img[:, :, 3]
+
+    # blur alpha channel
+    ab = cv2.GaussianBlur(a, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
+
+    # stretch so that 255 -> 255 and 127.5 -> 0
+    aa = skimage.exposure.rescale_intensity(ab, in_range=(127.5,255), out_range=(0,255))
+
+    # replace alpha channel in input with new alpha channel
+    out = img.copy()
+    out[:, :, 3] = aa
+
+    # save output
+    cv2.imwrite('lena_circle_antialias.png', out)
+
+    # Display various images to see the steps
+    # NOTE: In and Out show heavy aliasing. This seems to be an artifact of imshow(), which did not display transparency for me. However, the saved image looks fine
+
+    cv2.imshow('In',img)
+    cv2.imshow('BGR', bgr)
+    cv2.imshow('A', a)
+    cv2.imshow('AB', ab)
+    cv2.imshow('AA', aa)
+    cv2.imshow('Out', out)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main() # Run script
     #inputQR = input('enter test: ')
     #QRregex(inputQR,mode='order')
     #putText('DH-12_19_Jun_2021.avi','Hello',180)
+    #test_blur()
     
     
     
