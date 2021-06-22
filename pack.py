@@ -366,7 +366,7 @@ def editVideo(frameInput,id,logoDir):
     logoAbsPath = os.path.join(logoDir,'advice-logo.jpg') # Change logo here
     logo = cv2.imread(logoAbsPath)
     
-    frameInput = addLogo(frameInput,logo,logoScale=0.2)
+    frameInput = addLogo(frameInput,logo,logoScale=0.1)
 
     return frameInput
 
@@ -541,7 +541,7 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
     finalImg = cv2.add(imgBg,logoFg)
     #finalImg = cv2.GaussianBlur(finalImg,(5,5),0)
     cv2.imshow('Before blur',finalImg)
-    finalImg = cv2.medianBlur(finalImg,1)
+    finalImg = cv2.medianBlur(finalImg,3)
     cv2.imshow('after blur',finalImg)
 
     # Modify the original , Specify the location!
