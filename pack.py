@@ -289,11 +289,12 @@ def recordingVdo(filename,qrRead,logo_directory):
             QR_counter_frame = 0
             count_to_reset = 0
 
+        show_frame = cv2.putText(show_frame,'Recording',(int(show_frame.shape[1]*0.75),50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
         # show recording status
         if showText == True:
-            show_frame = cv2.putText(show_frame,'Recording',(int(show_frame.shape[1]*0.75),50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
+            
             #Draw red box around frame 
-            cv2.rectangle(show_frame,(0,0),(show_frame.shape[1],show_frame.shape[0]),(0,0,255),thickness=2)
+            cv2.rectangle(show_frame,(0,0),(show_frame.shape[1],show_frame.shape[0]),(0,0,255),thickness=3)
             count += 1
         elif showText == False:
             count += 1
