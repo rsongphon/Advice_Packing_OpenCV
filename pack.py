@@ -83,16 +83,19 @@ def main():
 
     wait_time_start = time.time() # Start countdown time
 
+    detect_staff = False
+    detect_order = False
+
+    # recording status
+    Record = False
+
+    qrRead = {'staff': None ,'order': None }
+
     while True: # loop this forever
-
-        
-
-        # recording status
-        Record = False
 
         # Wait for QR code for staffID and order number to begin recording video
         try:
-            Record , staffID , orderNo = QRscan(start_time=wait_time_start)
+            Record  = QRscan(start_time=wait_time_start,staffStatus=detect_staff,orderStatus=detect_order,QRinput=qrRead)
 
         # Or manually exit here (check condition in QR scan function)
         except TypeError: # Return None type from QRscan function raise TypeError
@@ -100,8 +103,9 @@ def main():
             break
 
 
-        # Information of order number and staff ID from qr code
-        qrRead = {'staff': staffID ,'order': orderNo }
+        # # Information of order number and staff ID from qr code
+        # qrRead['staff'] = staffID
+        # qrRead['order'] = orderNo
 
         # Start recording
         while Record:
@@ -136,7 +140,7 @@ def main():
             
             ######## Video recording success (and editing too) ##########
 
-            Record = False
+            #Record = False
 
             ######## Move file to valid folder and delete original file ##########
 
@@ -183,7 +187,7 @@ def main():
 
             ######## Ask thse same staff if they want to packing more ##########
 
-            Record , qrRead = recordAgain(QRinput = qrRead)
+            Record , qrRead , detect_staff  , detect_order = recordAgain(QRinput = qrRead)
             
             wait_time_start = time.time() # Reset countdown time
 
@@ -597,12 +601,11 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
     
     return oriFrame
 
-def QRscan(start_time,staffStatus=False,orderStatus=False):
+def QRscan(start_time,QRinput,staffStatus=False,orderStatus=False,):
     ##### This is IDLE state (starting point) that alway return to  #####
     ## Return video capture object class from this function ##
 
     #capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
-
 
     delay_frame = 0
 
@@ -617,7 +620,7 @@ def QRscan(start_time,staffStatus=False,orderStatus=False):
         #print(time_gap)
 
         # Ask for staff ID first
-        if not staffStatus:
+        if not staffStatus and not orderStatus:
             cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
             cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=1,lineType=cv2.LINE_AA)
 
@@ -626,7 +629,7 @@ def QRscan(start_time,staffStatus=False,orderStatus=False):
                 break
 
             try:
-                staffStatus , staffID = decodeStaffID(frame) # if found ID return True status
+                staffStatus , QRinput['staff'] = decodeStaffID(frame) # if found ID return True status and assign staff id value
                 #print(staffID)
             except TypeError: # if function return None (no QR code found) must handle TypeError
                 #print('Not detect staff ID yet')
@@ -634,19 +637,19 @@ def QRscan(start_time,staffStatus=False,orderStatus=False):
 
         # Then ask for order number or start another packing process for the same staff
         if staffStatus and not orderStatus:
-            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
-            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=1,lineType=cv2.LINE_AA)
-            cv2.putText(frame,'Found',(400,30),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
-            cv2.putText(frame,'Found',(400,30),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=1,lineType=cv2.LINE_AA)
+            cv2.putText(frame,'Found : ',(0,30),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
+            cv2.putText(frame,'Found : ',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=1,lineType=cv2.LINE_AA)
+            cv2.putText(frame,QRinput['staff'],(400,30),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
+            cv2.putText(frame,QRinput['staff'],(400,30),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=1,lineType=cv2.LINE_AA)
 
-            cv2.putText(frame,'Please Order number',(0,60),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
-            cv2.putText(frame,'Please Order number',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=1,lineType=cv2.LINE_AA)
+            cv2.putText(frame,'Please scan order number',(0,60),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
+            cv2.putText(frame,'Please scan order number',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=1,lineType=cv2.LINE_AA)
             
             # Still showing QR code detect but not care for output
             decodeStaffID(frame)
 
             try:
-                orderStatus , orderID = decodeOrderID(frame)
+                orderStatus , QRinput['order'] = decodeOrderID(frame) # if found ID return True status and assign order id value
                 #print(orderID)
             except TypeError: # if function return None (no QR code found) must handle TypeError
                 #print('Not detect order number yet')
@@ -674,15 +677,15 @@ def QRscan(start_time,staffStatus=False,orderStatus=False):
 
         # After recieve both ID and order number. Show status for some time before start recording
         if staffStatus and orderStatus:
-            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
-            cv2.putText(frame,'Please Scan Staff ID',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=1,lineType=cv2.LINE_AA)
-            cv2.putText(frame,'Found',(400,30),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
-            cv2.putText(frame,'Found',(400,30),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=1,lineType=cv2.LINE_AA)
+            cv2.putText(frame,'Found : ',(0,30),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
+            cv2.putText(frame,'Found : ',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=1,lineType=cv2.LINE_AA)
+            cv2.putText(frame,QRinput['staff'],(400,30),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
+            cv2.putText(frame,QRinput['staff'],(400,30),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=1,lineType=cv2.LINE_AA)
 
-            cv2.putText(frame,'Please Order number',(0,60),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
-            cv2.putText(frame,'Please Order number',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=1,lineType=cv2.LINE_AA)
-            cv2.putText(frame,'Found',(400,60),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
-            cv2.putText(frame,'Found',(400,60),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=1,lineType=cv2.LINE_AA)
+            cv2.putText(frame,'Found : ',(0,60),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
+            cv2.putText(frame,'Found : ',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=1,lineType=cv2.LINE_AA)
+            cv2.putText(frame,QRinput['order'],(400,60),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
+            cv2.putText(frame,QRinput['order'],(400,60),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=1,lineType=cv2.LINE_AA)
 
             # Still showing QR code detect but not care for output
             decodeStaffID(frame)
@@ -708,7 +711,7 @@ def QRscan(start_time,staffStatus=False,orderStatus=False):
                 cv2.waitKey(INTERFRAME_WAIT_MS)
                 #capture.release()
                 #cv2.destroyAllWindows()
-                return True , staffID , orderID
+                return True
 
         cv2.imshow(WINDOW_NAME,frame)
 
@@ -858,7 +861,9 @@ def recordAgain(QRinput):
                     cv2.waitKey(INTERFRAME_WAIT_MS)
                 #capture.release()
                 #cv2.destroyAllWindows()
-                return True , QRinput
+                detect_staff = True
+                detect_order = True
+                return True , QRinput , detect_staff , detect_order
         except TypeError:
             pass
 
@@ -866,7 +871,7 @@ def recordAgain(QRinput):
         try: 
             logOff , staffID = decodeStaffID(frame)
             if (logOff) and (staffID == QRinput['staff']):
-                 # Display Status after detect order number 
+                # Display Status after detect order number 
                 displayFrame = FRAMERATE * 5   # duration of  status screen (in second)
                 for frame in range(displayFrame):
                     isTrue, display = CAMERA.read()
@@ -892,7 +897,42 @@ def recordAgain(QRinput):
                     cv2.waitKey(INTERFRAME_WAIT_MS)
                 #capture.release()
                 #cv2.destroyAllWindows()
-                return False , QRinput
+                # reset everything back just in case
+                QRinput['staff'] = None
+                QRinput['order'] = None
+                detect_staff = False
+                detect_order = False
+                return False , QRinput , detect_staff , detect_order
+            elif (logOff) and (staffID != QRinput['staff']):
+                # Display Status after detect order number 
+                displayFrame = FRAMERATE * 5   # duration of  status screen (in second)
+                for frame in range(displayFrame):
+                    isTrue, display = CAMERA.read()
+                    decodeStaffID(display)
+                    cv2.putText(display,'Detect New Staff ID ' + staffID,(0,50),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
+                    cv2.putText(display,'Detect New Staff ID ' + staffID,(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=1,lineType=cv2.LINE_AA)
+                    cv2.putText(display,'Changing shift',(0,100),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
+                    cv2.putText(display,'Changing shift',(0,100),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=1,lineType=cv2.LINE_AA)
+                    # Flickering text
+                    if showText == True:
+                        cv2.putText(display,'Restarting',(0,display.shape[0]-30),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
+                        cv2.putText(display,'Restarting',(0,display.shape[0]-30),fontFace=FONT,fontScale=1,color=(0,0,255),thickness=1,lineType=cv2.LINE_AA)
+                        count += 1
+                    elif showText == False:
+                        count += 1
+                    if (count > numFrame) and (showText == True):
+                        showText = False
+                        count = 0
+                    if (count > numFrame) and (showText == False):
+                        showText = True
+                        count = 0
+                    cv2.imshow(WINDOW_NAME,display)
+                    cv2.waitKey(INTERFRAME_WAIT_MS)
+                QRinput['staff'] = staffID  # assign staff ID
+                QRinput['order'] = None     # reset order ID and wait for the next QR code
+                detect_staff = True
+                detect_order = False
+                return False , QRinput , detect_staff , detect_order
         except TypeError:
             pass
 
