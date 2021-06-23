@@ -19,6 +19,11 @@ WINDOW_NAME = 'Screen'
 INTERFRAME_WAIT_MS = 1
 
 CAMERA = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
+#CAMERA = cv2.VideoCapture(0) # window only
+
+CAMERA.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+CAMERA.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
 
 #cv2.namedWindow(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN)
 #cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -524,10 +529,10 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
     maskInv = cv2.bitwise_not(mask)
 
     #mask = cv2.medianBlur(mask,13)
-    cv2.imshow('mask',mask)
+    #cv2.imshow('mask',mask)
 
     #maskInv = cv2.medianBlur(maskInv,13)
-    cv2.imshow('maskINV',maskInv)
+    #cv2.imshow('maskINV',maskInv)
 
     # black-out the area of logo in ROI
     imgBg = cv2.bitwise_and(roi, roi, mask=maskInv)
@@ -540,9 +545,9 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
     # add logo and background together
     finalImg = cv2.add(imgBg,logoFg)
     #finalImg = cv2.GaussianBlur(finalImg,(5,5),0)
-    cv2.imshow('Before blur',finalImg)
+    #cv2.imshow('Before blur',finalImg)
     finalImg = cv2.medianBlur(finalImg,3)
-    cv2.imshow('after blur',finalImg)
+    #cv2.imshow('after blur',finalImg)
 
     # Modify the original , Specify the location!
     oriFrame[0:height,0:width] = finalImg
@@ -557,8 +562,9 @@ def QRscan(start_time,staffStatus=False,orderStatus=False):
     #capture = cv2.VideoCapture(0,cv2.CAP_DSHOW) # window only
 
 
-    delay = 0
-    #FRAMERATE = 17
+    delay_frame = 0
+
+    wait_time_sec = 3 ##### Change delay time before start recording here #####
 
     while True:
         ret,frame = CAMERA.read()
@@ -633,16 +639,22 @@ def QRscan(start_time,staffStatus=False,orderStatus=False):
             # Still showing QR code detect but not care for output
             decodeStaffID(frame)
             decodeOrderID(frame)
+            
 
             # still showing display for a moment befor exiting function
-            delay += 1
-            if delay < 50:
-                cv2.putText(frame,'Start Recording' +'.'*int(delay/10),(0,90),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+            delay_frame += 1
+            delay_second = delay_frame/FRAMERATE
+            if delay_second < wait_time_sec:
+                cv2.putText(frame,'Start Recording' +'...'*int(delay_second),(0,90),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+                for i in range(wait_time_sec):
+                    if (i == int(delay_second)):
+                        cv2.putText(frame,str((wait_time_sec+1) - (i+1)),(int(frame.shape[1]/2)-50,int(frame.shape[0]/2)+50),fontFace=FONT,fontScale=5,color=(0,255,0),thickness=5)
                 cv2.imshow(WINDOW_NAME,frame)
                 cv2.waitKey(INTERFRAME_WAIT_MS)
                 continue
-            else:
-                cv2.putText(frame,'Start Recording' +'.'*int(delay/10),(0,90),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+            else: # last frame
+                cv2.putText(frame,'Start Recording' +'...'*int(delay_second),(0,90),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
+                cv2.putText(frame,str((wait_time_sec+1)-int(delay_second)),(int(frame.shape[1]/2)-50,int(frame.shape[0]/2)+50),fontFace=FONT,fontScale=5,color=(0,255,0),thickness=5)
                 cv2.imshow(WINDOW_NAME,frame)
                 cv2.waitKey(INTERFRAME_WAIT_MS)
                 #capture.release()
@@ -664,7 +676,7 @@ def decodeStaffID(frame):
             #cv2.putText(frame,'Found',(400,30),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
             # get the point of the polygon
             points = np.array([code.polygon],np.int32)
-            points = points.reshape((-1,1,2))
+            points = points.reshape((-1,1,2)) # Open CV Document said to do so. but not neccessary
             # polyline is 3 dimension array 
             # 1 dimension represent each group of polygon (no line cross between group)
             # 2 dimension represent each point of the polygon in group
@@ -693,7 +705,7 @@ def decodeOrderID(frame):
         if QRregex(inputQR=qrCode,mode='order'):
             #cv2.putText(frame,'Found',(400,60),fontFace=font,fontScale=1,color=(0,255,0),thickness=2)
             points = np.array([code.polygon],np.int32)
-            points = points.reshape((-1,1,2))
+            points = points.reshape((-1,1,2))  # Open CV Document said to do so. but not neccessary
             cv2.polylines(frame,[points],True,(0,255,0),5) 
             rect = code.rect
             rectOrigin = (rect[0],rect[1])
