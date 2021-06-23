@@ -237,13 +237,17 @@ def recordingVdo(filename,qrRead,logo_directory):
     # For using to delay qrcode to exit the recording progress
     QR_counter_frame = 0
     QR_detect_duration = 0 # in second
-    # CHANE DELAY TO SCAN EXIT HERE
-    duration_exit_limit = 5  # in second 
+    ############ CHANGE DELAY TO SCAN EXIT HERE ############
+    duration_exit_limit = 3  # in second 
     
     count_to_reset = 0
     QR_absent_duration = 0
     # CHANE DELAY RESET COUNTDOWN TIME HERE
     QR_absent_limit = 3 # in second
+
+    # Use when exiting stage #
+    exit_frame = 0
+    last_record_sec = 3
 
     # Loop to record video
     # To exit video: show QR code to start countdown process
@@ -308,20 +312,34 @@ def recordingVdo(filename,qrRead,logo_directory):
         cv2.imshow(WINDOW_NAME,show_frame)
         cv2.waitKey(INTERFRAME_WAIT_MS)
 
-    
     finishTime = getCurrentTime() # get finish time to label to video
 
-    # display finish status for 5 second then exit
-    displayFrame = FRAMERATE * 5
+    #recording last 3 secod
+    # display finish status for 3 second then exit
+    sec = exit_frame/FRAMERATE
     
+    while (sec <= last_record_sec):
+        isTrue, oriframe = CAMERA.read()
+        output.write(oriframe)
+        oriframe_copy = oriframe.copy()
+        frame_forshow = oriframe.copy()
+        edit_frame = editVideo(frameInput=oriframe_copy,id=qrRead,logoDir=logo_directory)
+        output_edit.write(edit_frame)
+        
+        show_frame , _ = scanToExit(frame_forshow,qrRead['order']) # still display order no.
+        cv2.putText(show_frame,'Finished!',(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
+        cv2.putText(show_frame,'Stop recording'+'...'*int(sec+1),(0,80),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
 
-    for frame in range(displayFrame):
-        isTrue, display = CAMERA.read()
-        display , _ = scanToExit(display,qrRead['order']) # still display order no.
-        cv2.putText(display,'Finished!',(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
-        cv2.putText(display,'Stop recording'+'.'*int(frame/FRAMERATE),(0,80),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
-        cv2.imshow(WINDOW_NAME,display)
+        # Put countdown timer
+        for i in range(last_record_sec):
+            if (i == int(sec)):
+                cv2.putText(show_frame,str((last_record_sec+1) - (i+1)),(int(show_frame.shape[1]/2)-50,int(show_frame.shape[0]/2)+50),fontFace=FONT,fontScale=5,color=(0,0,255),thickness=5)
+            
+        cv2.imshow(WINDOW_NAME,show_frame)
         cv2.waitKey(INTERFRAME_WAIT_MS)
+
+        exit_frame += 1
+        sec = exit_frame/FRAMERATE
 
 
     #capture.release()
@@ -634,14 +652,11 @@ def QRscan(start_time,staffStatus=False,orderStatus=False):
             cv2.putText(frame,'Please Order number',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
             cv2.putText(frame,'Found',(400,60),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=2)
 
-            
-
             # Still showing QR code detect but not care for output
             decodeStaffID(frame)
             decodeOrderID(frame)
             
-
-            # still showing display for a moment befor exiting function
+            # Delay aftet detect both QR code before exit video
             delay_frame += 1
             delay_second = delay_frame/FRAMERATE
             if delay_second < wait_time_sec:
