@@ -123,7 +123,7 @@ def main():
             ######## Start Recording Video ##########
     
             # Return file name and finish time to use to label video filename
-            edit_videoname , original_videoname , finishTime = recordingVdo(filename = filename,qrRead=qrRead,logo_directory = logoDir)
+            edit_videoname  = recordingVdo(filename = filename,qrRead=qrRead,logo_directory = logoDir)
 
             # Cut Footage
             # Get FPS data duration of the video
@@ -155,9 +155,6 @@ def main():
             shutil.copy(finishFilePath,fileStorePath)
 
             #delete original video
-            filepath_original = os.path.join(parentDir,original_videoname)
-            print(f'Deleting backup...{original_videoname}')
-            os.unlink(filepath_original)
             print(f'Deleting backup....{edit_videoname}')
             os.unlink(finishFilePath)
 
@@ -229,15 +226,10 @@ def recordingVdo(filename,qrRead,logo_directory):
     showText = True
     numFrame = 10 # number of frame for flickering text
 
-    # Backup file 
-    ori_filename = filename+'_original.avi'
-
     # filename foe use in the next process
-
     edit_filename = filename+'.avi'
     
     # Define the codec and create VideoWriter object.
-    output = cv2.VideoWriter(ori_filename,fourcc,FRAMERATE,(width,height))
     output_edit = cv2.VideoWriter(edit_filename,fourcc,FRAMERATE,(width,height))
 
     start_time = time.time() # Start time counter
@@ -266,7 +258,6 @@ def recordingVdo(filename,qrRead,logo_directory):
     # duration = frame_count/fps
     while QR_detect_duration<duration_exit_limit:
         isTrue, oriframe = CAMERA.read()
-        output.write(oriframe)
         oriframe_copy = oriframe.copy()
         frame_forshow = oriframe.copy()
         edit_frame = editVideo(frameInput=oriframe_copy,id=qrRead,logoDir=logo_directory)
@@ -342,7 +333,6 @@ def recordingVdo(filename,qrRead,logo_directory):
         cv2.imshow(WINDOW_NAME,show_frame)
         cv2.waitKey(INTERFRAME_WAIT_MS)
 
-    finishTime = getCurrentTime() # get finish time to label to video
 
     #recording last 3 secod
     # display finish status for 3 second then exit
@@ -350,7 +340,6 @@ def recordingVdo(filename,qrRead,logo_directory):
     
     while (sec <= last_record_sec):
         isTrue, oriframe = CAMERA.read()
-        output.write(oriframe)
         oriframe_copy = oriframe.copy()
         frame_forshow = oriframe.copy()
         edit_frame = editVideo(frameInput=oriframe_copy,id=qrRead,logoDir=logo_directory)
@@ -375,10 +364,10 @@ def recordingVdo(filename,qrRead,logo_directory):
 
 
     #capture.release()
-    output.release()
+    output_edit.release()
     #cv2.destroyAllWindows()
 
-    return edit_filename, ori_filename , finishTime
+    return edit_filename
 
 def editVideo(frameInput,id,logoDir):
 
@@ -1048,41 +1037,6 @@ def QRregex(inputQR,mode):
         print('Invalid mode')
         return False
 
-def test_blur():
-        # load image with alpha channel
-    img = cv2.imread('C:/Users/NB/Documents/GitHub/Advice_Packing_OpenCV/logo/advice-logo.jpg', cv2.IMREAD_UNCHANGED)
-
-    # extract only bgr channels
-    bgr = img[:, :, 0:3]
-
-    # extract alpha channel
-    a = img[:, :, 3]
-
-    # blur alpha channel
-    ab = cv2.GaussianBlur(a, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
-
-    # stretch so that 255 -> 255 and 127.5 -> 0
-    aa = skimage.exposure.rescale_intensity(ab, in_range=(127.5,255), out_range=(0,255))
-
-    # replace alpha channel in input with new alpha channel
-    out = img.copy()
-    out[:, :, 3] = aa
-
-    # save output
-    cv2.imwrite('lena_circle_antialias.png', out)
-
-    # Display various images to see the steps
-    # NOTE: In and Out show heavy aliasing. This seems to be an artifact of imshow(), which did not display transparency for me. However, the saved image looks fine
-
-    cv2.imshow('In',img)
-    cv2.imshow('BGR', bgr)
-    cv2.imshow('A', a)
-    cv2.imshow('AB', ab)
-    cv2.imshow('AA', aa)
-    cv2.imshow('Out', out)
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main() # Run script
