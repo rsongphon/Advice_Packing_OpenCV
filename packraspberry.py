@@ -15,16 +15,21 @@ from moviepy.editor import *
 
 MONTH = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
 
+# For show in display
 WINDOW_NAME = 'Screen'
 cv2.namedWindow(WINDOW_NAME,cv2.WINDOW_NORMAL)
 cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 cv2.resizeWindow(WINDOW_NAME, 480,320)
+
+# for reduce resolution in display (lower = better framerate)
+SCALE = 0.4
 
 INTERFRAME_WAIT_MS = 1
 
 CAMERA = cv2.VideoCapture(0) 
 #CAMERA = cv2.VideoCapture(0) # window only
 
+# For output record
 CAMERA.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 CAMERA.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
@@ -259,7 +264,11 @@ def recordingVdo(filename,qrRead,logo_directory):
     while QR_detect_duration<duration_exit_limit:
         isTrue, oriframe = CAMERA.read()
         oriframe_copy = oriframe.copy()
+
         frame_forshow = oriframe.copy()
+        # reduce resolution
+        frame_forshow = rescaleFrame(frame_forshow,SCALE)
+
         edit_frame = editVideo(frameInput=oriframe_copy,id=qrRead,logoDir=logo_directory)
         output_edit.write(edit_frame)
 
@@ -341,7 +350,11 @@ def recordingVdo(filename,qrRead,logo_directory):
     while (sec <= last_record_sec):
         isTrue, oriframe = CAMERA.read()
         oriframe_copy = oriframe.copy()
+
         frame_forshow = oriframe.copy()
+        # reduce resolution
+        frame_forshow = rescaleFrame(frame_forshow,SCALE)
+
         edit_frame = editVideo(frameInput=oriframe_copy,id=qrRead,logoDir=logo_directory)
         output_edit.write(edit_frame)
         
@@ -377,7 +390,7 @@ def editVideo(frameInput,id,logoDir):
     # # Threshholding image to identify dark area
     # thresholding ,thresh_image = cv2.threshold(gray_frame,150,255,cv2.THRESH_BINARY)
     # cv2.imshow('Thresh',thresh_image)
-
+    fontsize = 2
     # # Pixel black > text white
 
     # # Pixel white > text black
@@ -385,8 +398,8 @@ def editVideo(frameInput,id,logoDir):
     # Put the text in image 
     #font = cv2.FONT_HERSHEY_SIMPLEX # adjust font type
     textLocation_staff = (0,frameInput.shape[0]-10)  # adjust the minus value to move the row
-    textLocation_order = (0,frameInput.shape[0]-30)  # adjust the minus value to move the row
-    textLocation_Time = (0,frameInput.shape[0]-50)
+    textLocation_order = (0,frameInput.shape[0]-80)  # adjust the minus value to move the row
+    textLocation_Time = (0,frameInput.shape[0]-140)
 
     text_staff = 'Staff ID: '+id['staff']
     text_order = 'Order No: '+id['order']
@@ -394,23 +407,23 @@ def editVideo(frameInput,id,logoDir):
     text_time = 'Time : Date {}:{} {} {} {}'.format(current_time['hour'],current_time['min'],current_time['day'],current_time['monthName'],current_time['year'])
 
     cv2.putText(img = frameInput,text=text_staff,org=textLocation_staff, 
-                fontFace=FONT, fontScale=0.5, color=(255, 255, 0), thickness=4, lineType =cv2.LINE_AA)
+                fontFace=FONT, fontScale=fontsize, color=(255, 255, 0), thickness=4, lineType =cv2.LINE_AA)
     cv2.putText(img = frameInput,text=text_staff,org=textLocation_staff, 
-                fontFace=FONT, fontScale=0.5, color=(0, 0, 0), thickness=1, lineType =cv2.LINE_AA)
+                fontFace=FONT, fontScale=fontsize, color=(0, 0, 0), thickness=1, lineType =cv2.LINE_AA)
 
     cv2.putText(img = frameInput,text=text_order,org=textLocation_order,
-                fontFace=FONT, fontScale=0.5, color=(255, 255, 0), thickness= 4, lineType=cv2.LINE_AA)
+                fontFace=FONT, fontScale=fontsize, color=(255, 255, 0), thickness= 4, lineType=cv2.LINE_AA)
     cv2.putText(img = frameInput,text=text_order,org=textLocation_order,
-                fontFace=FONT, fontScale=0.5, color=(0, 0, 0), thickness= 1, lineType=cv2.LINE_AA)
+                fontFace=FONT, fontScale=fontsize, color=(0, 0, 0), thickness= 1, lineType=cv2.LINE_AA)
 
-    cv2.putText(img = frameInput,text=text_time ,org=textLocation_Time,fontFace=FONT, fontScale=0.5, color=(255, 255, 0), thickness= 4, lineType=cv2.LINE_AA)
-    cv2.putText(img = frameInput,text=text_time ,org=textLocation_Time,fontFace=FONT, fontScale=0.5, color=(0, 0, 0), thickness= 1, lineType=cv2.LINE_AA)
+    cv2.putText(img = frameInput,text=text_time ,org=textLocation_Time,fontFace=FONT, fontScale=fontsize, color=(255, 255, 0), thickness= 4, lineType=cv2.LINE_AA)
+    cv2.putText(img = frameInput,text=text_time ,org=textLocation_Time,fontFace=FONT, fontScale=fontsize, color=(0, 0, 0), thickness= 1, lineType=cv2.LINE_AA)
     
     #Put logo in the image
     logoAbsPath = os.path.join(logoDir,'advice-logo.jpg') # Change logo here
     logo = cv2.imread(logoAbsPath)
     
-    frameInput = addLogo(frameInput,logo,logoScale=0.1)
+    frameInput = addLogo(frameInput,logo,logoScale=0.5)
 
     return frameInput
 
@@ -538,17 +551,17 @@ def cutVideo(file_inputname,videoData,durTarget,mode='cut'):
         else:
             return # return the original videoname in case video did not change
 
+def rescaleFrame(frame,scale=0.5): 
+    # work for image , video , live camera
+    #The shape of an image is accessed by img.shape. It returns a tuple of the number of rows, columns, and channels (if the image is color):
+    width = int(frame.shape[1] * scale)  # shape[1] = width: must be int
+    height = int(frame.shape[0]* scale) # shape[0] = :height must be int
+
+    dimension = (width,height) # tuple to keep dimension
+
+    return cv2.resize(frame,dimension,interpolation=cv2.INTER_AREA)
+
 def addLogo(inputFrame,imgLogo,logoScale=0.1): 
-
-    def rescaleFrame(frame,scale=logoScale): 
-        # work for image , video , live camera
-        #The shape of an image is accessed by img.shape. It returns a tuple of the number of rows, columns, and channels (if the image is color):
-        width = int(frame.shape[1] * scale)  # shape[1] = width: must be int
-        height = int(frame.shape[0]* scale) # shape[0] = :height must be int
-
-        dimension = (width,height) # tuple to keep dimension
-
-        return cv2.resize(frame,dimension,interpolation=cv2.INTER_AREA)
 
     oriFrame = inputFrame
     logo = imgLogo
@@ -594,7 +607,7 @@ def addLogo(inputFrame,imgLogo,logoScale=0.1):
     
     return oriFrame
 
-def QRscan(start_time,QRinput,staffStatus=False,orderStatus=False,):
+def QRscan(start_time,QRinput,staffStatus=False,orderStatus=False):
     ##### This is IDLE state (starting point) that alway return to  #####
     ## Return video capture object class from this function ##
 
@@ -606,6 +619,10 @@ def QRscan(start_time,QRinput,staffStatus=False,orderStatus=False,):
 
     while True:
         ret,frame = CAMERA.read()
+
+        # rescale frame for show and processing
+        frame = rescaleFrame(frame,SCALE)
+
         #font = cv2.FONT_HERSHEY_SIMPLEX
         recent_time = time.time() # Get current time
         time_gap = recent_time - start_time 
@@ -813,6 +830,10 @@ def recordAgain(QRinput):
 
     while True:
         ret,frame = CAMERA.read()
+
+        # reduce resolution
+        frame = rescaleFrame(frame,SCALE)
+
         frame = cv2.putText(frame,'Staff ID :' + QRinput['staff'] ,(0,50),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
         frame = cv2.putText(frame,'Staff ID :' + QRinput['staff'] ,(0,50),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=1,lineType=cv2.LINE_AA)
         if showText == True:
@@ -842,6 +863,10 @@ def recordAgain(QRinput):
                 for delay_frame in range(FRAMERATE*wait_time_sec):
                     delay_second = delay_frame/FRAMERATE
                     isTrue, frame = CAMERA.read()
+
+                    # reduce resolution
+                    frame = rescaleFrame(frame,SCALE)
+
                     decodeOrderID(frame)
 
                     cv2.putText(frame,'Next order Found!',(0,50),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
@@ -910,6 +935,10 @@ def recordAgain(QRinput):
                 displayFrame = FRAMERATE * 5   # duration of  status screen (in second)
                 for frame in range(displayFrame):
                     isTrue, display = CAMERA.read()
+
+                    # reduce resolution
+                    display = rescaleFrame(display,SCALE)
+
                     decodeStaffID(display)
                     cv2.putText(display,'Detect Staff ID ' + staffID,(0,50),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
                     cv2.putText(display,'Detect Staff ID ' + staffID,(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=1,lineType=cv2.LINE_AA)
@@ -943,6 +972,10 @@ def recordAgain(QRinput):
                 displayFrame = FRAMERATE * 5   # duration of  status screen (in second)
                 for frame in range(displayFrame):
                     isTrue, display = CAMERA.read()
+
+                    # reduce resolution
+                    display = rescaleFrame(display,SCALE)
+
                     decodeStaffID(display)
                     cv2.putText(display,'Detect New Staff ID ' + staffID,(0,50),fontFace=FONT,fontScale=1,color=(0,0,0),thickness=2,lineType=cv2.LINE_AA)
                     cv2.putText(display,'Detect New Staff ID ' + staffID,(0,50),fontFace=FONT,fontScale=1,color=(0,255,0),thickness=1,lineType=cv2.LINE_AA)
@@ -973,22 +1006,6 @@ def recordAgain(QRinput):
 
         cv2.imshow(WINDOW_NAME,frame)
         cv2.waitKey(INTERFRAME_WAIT_MS)
-
-def waitScreen(mode):
-
-    ## note wait screen make video edit longer##
-    if mode == 'edit':
-        _, waitFrame = CAMERA.read()
-        waitFrame = cv2.putText(waitFrame,'Editing video',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
-        waitFrame = cv2.putText(waitFrame,'Please wait',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
-        cv2.imshow(WINDOW_NAME,waitFrame)
-        cv2.waitKey(1)
-    elif mode == 'cut':
-        _, waitFrame = CAMERA.read()
-        waitFrame = cv2.putText(waitFrame,'Cutting video',(0,30),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
-        waitFrame = cv2.putText(waitFrame,'Please wait',(0,60),fontFace=FONT,fontScale=1,color=(255,255,0),thickness=2)
-        cv2.imshow(WINDOW_NAME,waitFrame)
-        cv2.waitKey(1)
 
 def QRregex(inputQR,mode):
 
