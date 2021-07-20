@@ -17,7 +17,8 @@ MONTH = {1:'JAN',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep'
 
 WINDOW_NAME = 'Screen'
 cv2.namedWindow(WINDOW_NAME,cv2.WINDOW_NORMAL)
-cv2.resizeWindow(WINDOW_NAME, 640,480)
+cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+cv2.resizeWindow(WINDOW_NAME, 480,320)
 
 INTERFRAME_WAIT_MS = 1
 
